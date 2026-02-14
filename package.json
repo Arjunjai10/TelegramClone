@@ -10,16 +10,25 @@
     "test": "jest"
   },
   "dependencies": {
+    "@react-native-firebase/app": "^23.8.6",
+    "@react-native-firebase/auth": "^23.8.6",
+    "@react-native-firebase/firestore": "^23.8.6",
+    "@react-native-firebase/storage": "^23.8.6",
+    "@react-native/new-app-screen": "0.84.0",
+    "@react-navigation/bottom-tabs": "^7.13.0",
+    "@react-navigation/native": "^7.1.28",
+    "@react-navigation/stack": "^7.7.1",
     "react": "19.2.3",
     "react-native": "0.84.0",
-    "@react-native/new-app-screen": "0.84.0",
-    "react-native-safe-area-context": "^5.5.2"
+    "react-native-gesture-handler": "^2.30.0",
+    "react-native-safe-area-context": "^5.6.2",
+    "react-native-screens": "^4.23.0"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",
     "@babel/preset-env": "^7.25.3",
     "@babel/runtime": "^7.25.0",
-    "@react-native-community/cli": "20.1.0",
+    "@react-native-community/cli": "^20.1.1",
     "@react-native-community/cli-platform-android": "20.1.0",
     "@react-native-community/cli-platform-ios": "20.1.0",
     "@react-native/babel-preset": "0.84.0",
