@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "127677600795",
+    "project_id": "telegramclone-a1fd4",
+    "storage_bucket": "telegramclone-a1fd4.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:127677600795:android:da363d32f06bab86c394be",
+        "android_client_info": {
+          "package_name": "com.telegramclone"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCtRXZmQBcbDVHnIiUlpeKxwL2iQ-twDZ8"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
