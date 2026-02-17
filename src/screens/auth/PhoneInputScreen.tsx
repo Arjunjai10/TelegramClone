@@ -9,6 +9,8 @@ import {
     Platform,
     ActivityIndicator,
     Alert,
+    SafeAreaView,
+    StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -48,64 +50,71 @@ const PhoneInputScreen: React.FC = () => {
     };
 
     return (
-        <KeyboardAvoidingView
-            style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
-            <View style={styles.content}>
-                {/* Logo */}
-                <View style={styles.logoContainer}>
-                    <View style={styles.logoCircle}>
-                        <Icon name="paper-plane" size={40} color={Colors.white} />
+        <SafeAreaView style={styles.container}>
+            <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+            <KeyboardAvoidingView
+                style={{ flex: 1 }}
+                behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
+                <View style={styles.header}>
+                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                        <Icon name="arrow-back" size={24} color={Colors.white} />
+                    </TouchableOpacity>
+                </View>
+
+                <View style={styles.content}>
+                    {/* Logo */}
+                    <View style={styles.logoContainer}>
+                        <Icon name="logo-telegram" size={80} color={Colors.primary} />
+                        <Text style={styles.title}>Your Phone</Text>
+                        <Text style={styles.subtitle}>
+                            Please confirm your country code and enter your phone number.
+                        </Text>
                     </View>
-                    <Text style={styles.title}>Telegram</Text>
-                    <Text style={styles.subtitle}>
-                        Please enter your phone number to sign in
+
+                    {/* Phone Input */}
+                    <View style={styles.inputSection}>
+                        <View style={styles.countryCodeContainer}>
+                            <TextInput
+                                style={styles.countryCodeInput}
+                                value={countryCode}
+                                onChangeText={setCountryCode}
+                                keyboardType="phone-pad"
+                                maxLength={4}
+                            />
+                        </View>
+                        <View style={styles.phoneInputContainer}>
+                            <TextInput
+                                style={styles.phoneInput}
+                                placeholder="Phone number"
+                                placeholderTextColor={Colors.textSecondary}
+                                value={phoneNumber}
+                                onChangeText={setPhoneNumber}
+                                keyboardType="phone-pad"
+                                maxLength={15}
+                                autoFocus
+                            />
+                        </View>
+                    </View>
+
+                    <Text style={styles.note}>
+                        We will send you an SMS with a verification code.
                     </Text>
+
+                    {/* Next Button */}
+                    <TouchableOpacity
+                        style={[styles.nextButton, isLoading && styles.nextButtonDisabled]}
+                        onPress={handleNext}
+                        disabled={isLoading}
+                        activeOpacity={0.8}>
+                        {isLoading ? (
+                            <ActivityIndicator color={Colors.white} />
+                        ) : (
+                            <Text style={styles.nextButtonText}>NEXT</Text>
+                        )}
+                    </TouchableOpacity>
                 </View>
-
-                {/* Phone Input */}
-                <View style={styles.inputSection}>
-                    <View style={styles.countryCodeContainer}>
-                        <TextInput
-                            style={styles.countryCodeInput}
-                            value={countryCode}
-                            onChangeText={setCountryCode}
-                            keyboardType="phone-pad"
-                            maxLength={4}
-                        />
-                    </View>
-                    <View style={styles.phoneInputContainer}>
-                        <TextInput
-                            style={styles.phoneInput}
-                            placeholder="Phone number"
-                            placeholderTextColor={Colors.textSecondary}
-                            value={phoneNumber}
-                            onChangeText={setPhoneNumber}
-                            keyboardType="phone-pad"
-                            maxLength={15}
-                            autoFocus
-                        />
-                    </View>
-                </View>
-
-                <Text style={styles.note}>
-                    We will send you an SMS with a verification code.
-                </Text>
-
-                {/* Next Button */}
-                <TouchableOpacity
-                    style={[styles.nextButton, isLoading && styles.nextButtonDisabled]}
-                    onPress={handleNext}
-                    disabled={isLoading}
-                    activeOpacity={0.8}>
-                    {isLoading ? (
-                        <ActivityIndicator color={Colors.white} />
-                    ) : (
-                        <Text style={styles.nextButtonText}>NEXT</Text>
-                    )}
-                </TouchableOpacity>
-            </View>
-        </KeyboardAvoidingView>
+            </KeyboardAvoidingView>
+        </SafeAreaView>
     );
 };
 
@@ -119,23 +128,25 @@ const styles = StyleSheet.create({
         paddingHorizontal: Spacing.xxl,
         justifyContent: 'center',
     },
+    header: {
+        height: 56,
+        paddingHorizontal: 16,
+        justifyContent: 'center',
+    },
+    backButton: {
+        width: 40,
+        height: 40,
+        justifyContent: 'center',
+    },
     logoContainer: {
         alignItems: 'center',
-        marginBottom: Spacing.xxxl + 8,
-    },
-    logoCircle: {
-        width: 80,
-        height: 80,
-        borderRadius: 40,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginBottom: Spacing.lg,
+        marginBottom: 40,
     },
     title: {
         ...Typography.h1,
         color: Colors.textPrimary,
-        marginBottom: Spacing.sm,
+        marginTop: 20,
+        marginBottom: 10,
     },
     subtitle: {
         ...Typography.body,

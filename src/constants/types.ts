@@ -47,6 +47,8 @@ export interface Contact {
 
 // Navigation param lists
 export type AuthStackParamList = {
+    Splash: undefined;
+    Login: undefined;
     PhoneInput: undefined;
     OTP: { phoneNumber: string };
     ProfileSetup: undefined;
@@ -56,6 +58,7 @@ export type MainTabParamList = {
     ChatsTab: undefined;
     ContactsTab: undefined;
     SettingsTab: undefined;
+    ProfileTab: undefined;
 };
 
 export type ChatStackParamList = {

@@ -15,6 +15,7 @@ interface ChatState {
     subscribeToMessages: (chatId: string) => () => void;
     sendMessage: (chatId: string, text: string, senderId: string, type?: 'text' | 'image', imageURL?: string) => Promise<void>;
     createChat: (currentUserId: string, otherUserId: string) => Promise<string>;
+    deleteChat: (chatId: string) => Promise<void>;
     populateChatUsers: (chats: Chat[], currentUserId: string) => Promise<Chat[]>;
 }
 
@@ -84,6 +85,20 @@ export const useChatStore = create<ChatState>((set, get) => ({
         } catch (error: any) {
             console.error('Failed to create chat:', error);
             Alert.alert('Error', 'Could not start a conversation. Please try again.');
+            throw error;
+        }
+    },
+
+    deleteChat: async (chatId) => {
+        try {
+            await chatService.deleteChat(chatId);
+            // Optimistic update
+            set((state) => ({
+                chats: state.chats.filter((c) => c.id !== chatId),
+            }));
+        } catch (error: any) {
+            console.error('Failed to delete chat:', error);
+            Alert.alert('Error', 'Failed to delete chat. Please try again.');
             throw error;
         }
     },

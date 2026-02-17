@@ -10,6 +10,8 @@ const AppNavigator: React.FC = () => {
     const { isAuthenticated, isProfileComplete, isLoading, initialize } =
         useAuthStore();
 
+
+
     useEffect(() => {
         const unsubscribe = initialize();
         return () => unsubscribe();

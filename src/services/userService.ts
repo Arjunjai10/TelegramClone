@@ -54,23 +54,48 @@ class UserService {
     async getUsersByPhoneNumbers(phoneNumbers: string[]): Promise<User[]> {
         if (phoneNumbers.length === 0) return [];
 
+        // Normalize input numbers to E.164 format and other potential formats
+        const formatsToCheck = new Set<string>();
+        phoneNumbers.forEach(num => {
+            const clean = num.replace(/[^\d+]/g, '');
+            if (clean) {
+                formatsToCheck.add(clean);
+                // Also add without + if it exists
+                if (clean.startsWith('+')) {
+                    formatsToCheck.add(clean.substring(1));
+                }
+                // Also add last 10 digits (local format)
+                if (clean.length > 10) {
+                    formatsToCheck.add(clean.slice(-10));
+                }
+            }
+        });
+
+
+        const allNumbers = Array.from(formatsToCheck);
+
         // Firestore 'in' query limit is 10
         const chunkSize = 10;
         const chunks = [];
-        for (let i = 0; i < phoneNumbers.length; i += chunkSize) {
-            chunks.push(phoneNumbers.slice(i, i + chunkSize));
+        for (let i = 0; i < allNumbers.length; i += chunkSize) {
+            chunks.push(allNumbers.slice(i, i + chunkSize));
         }
 
-        const users: User[] = [];
+        const usersMap = new Map<string, User>();
         for (const chunk of chunks) {
-            const snapshot = await this.collection
-                .where('phoneNumber', 'in', chunk)
-                .get();
-            snapshot.docs.forEach(doc => {
-                users.push({ id: doc.id, ...doc.data() } as User);
-            });
+            try {
+                const snapshot = await this.collection
+                    .where('phoneNumber', 'in', chunk)
+                    .get();
+
+                snapshot.docs.forEach(doc => {
+                    usersMap.set(doc.id, { id: doc.id, ...doc.data() } as User);
+                });
+            } catch (err) {
+                console.error('UserService: Error fetching chunk', err);
+            }
         }
-        return users;
+        return Array.from(usersMap.values());
     }
 
     /**

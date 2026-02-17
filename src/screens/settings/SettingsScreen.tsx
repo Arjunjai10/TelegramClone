@@ -10,13 +10,14 @@ import {
     StatusBar,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
-import { Colors, Typography, Spacing, Shadows } from '../../constants/theme';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { Colors, Spacing } from '../../constants/theme';
 import { useAuthStore } from '../../store';
 import Avatar from '../../components/common/Avatar';
 import SettingsItem from '../../components/settings/SettingsItem';
 
 const SettingsScreen: React.FC = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<any>();
     const { user, signOut } = useAuthStore();
 
     const handleSignOut = () => {
@@ -38,117 +39,96 @@ const SettingsScreen: React.FC = () => {
 
     return (
         <View style={styles.container}>
-            {/* Header */}
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Settings</Text>
+                <TouchableOpacity onPress={() => navigation.goBack()}>
+                    <Icon name="arrow-back" size={24} color={Colors.white} />
+                </TouchableOpacity>
+                <View style={styles.headerRight}>
+                    <TouchableOpacity style={styles.headerIcon}>
+                        <Icon name="search" size={24} color={Colors.white} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.headerIcon}>
+                        <Icon name="ellipsis-vertical" size={24} color={Colors.white} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
-            <ScrollView>
-                {/* Profile Card */}
-                <TouchableOpacity
-                    style={styles.profileCard}
-                    onPress={() => (navigation as any).navigate('EditProfile')}
-                    activeOpacity={0.7}>
-                    <Avatar
-                        uri={user?.photoURL}
-                        name={user?.displayName || 'User'}
-                        size={64}
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* Profile Banner */}
+                <View style={styles.profileBanner}>
+                    <View style={styles.avatarContainer}>
+                        <Avatar
+                            uri={user?.photoURL}
+                            name={user?.displayName || 'User'}
+                            size={100}
+                        />
+                        <TouchableOpacity style={styles.cameraButton}>
+                            <Icon name="camera" size={20} color={Colors.white} />
+                        </TouchableOpacity>
+                    </View>
+                    <Text style={styles.profileName}>{user?.displayName || 'Rick Grimes'}</Text>
+                    <Text style={styles.profilePhone}>{user?.phoneNumber || '+91 9345999936'}</Text>
+                </View>
+
+                {/* Number Confirmation Box */}
+                <View style={styles.confirmationBox}>
+                    <Text style={styles.confirmationTitle}>Is {user?.phoneNumber || '+91 9345999936'} still your number?</Text>
+                    <Text style={styles.confirmationSubtitle}>
+                        Keep your number up to date to ensure you can always log into Telegram. <Text style={styles.linkText}>Learn more</Text>
+                    </Text>
+                    <View style={styles.confirmationButtons}>
+                        <TouchableOpacity style={[styles.confirmButton, styles.confirmButtonNo]}>
+                            <Text style={styles.confirmButtonText}>No</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={[styles.confirmButton, styles.confirmButtonYes]}>
+                            <Icon name="thumbs-up" size={18} color={Colors.white} style={{ marginRight: 8 }} />
+                            <Text style={styles.confirmButtonText}>Yes</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
+                {/* Settings Menu */}
+                <View style={styles.menuContainer}>
+                    <SettingsItem
+                        icon="person"
+                        label="Account"
+                        subtitle="Number, Username, Bio"
+                        iconColor="#2AABEE"
                     />
-                    <View style={styles.profileInfo}>
-                        <Text style={styles.profileName}>
-                            {user?.displayName || 'User'}
-                        </Text>
-                        <Text style={styles.profilePhone}>
-                            {user?.phoneNumber || ''}
-                        </Text>
-                    </View>
-                    <View style={styles.editIcon}>
-                        <Text style={styles.editIconText}>›</Text>
-                    </View>
+                    <SettingsItem
+                        icon="chatbubble"
+                        label="Chat Settings"
+                        subtitle="Wallpaper, Night Mode, Animations"
+                        iconColor="#FFC107"
+                    />
+                    <SettingsItem
+                        icon="shield-checkmark"
+                        label="Privacy & Security"
+                        subtitle="Last Seen, Devices, Passkeys"
+                        iconColor="#4CAF50"
+                    />
+                    <SettingsItem
+                        icon="notifications"
+                        label="Notifications"
+                        subtitle="Sounds, Calls, Badges"
+                        iconColor="#F44336"
+                    />
+                    <SettingsItem
+                        icon="server"
+                        label="Data and Storage"
+                        subtitle="Media download settings"
+                        iconColor="#03A9F4"
+                    />
+                    <SettingsItem
+                        icon="copy" // Using copy as a placeholder for Chat Folders
+                        label="Chat Folders"
+                        iconColor="#3F51B5"
+                    />
+                </View>
+
+                <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut}>
+                    <Text style={styles.signOutText}>Sign Out</Text>
                 </TouchableOpacity>
-
-                {/* Account Section */}
-                <View style={styles.sectionWrapper}>
-                    <Text style={styles.sectionTitle}>Account</Text>
-                    <View style={styles.section}>
-                        <SettingsItem
-                            icon="person-outline"
-                            label="Edit Profile"
-                            onPress={() => (navigation as any).navigate('EditProfile')}
-                        />
-                        <SettingsItem
-                            icon="shield-checkmark-outline"
-                            label="Privacy and Security"
-                            iconColor="#7C4DFF"
-                        />
-                        <SettingsItem
-                            icon="notifications-outline"
-                            label="Notifications and Sounds"
-                            iconColor="#FF6D00"
-                        />
-                        <SettingsItem
-                            icon="server-outline"
-                            label="Data and Storage"
-                            iconColor="#00BFA5"
-                        />
-                    </View>
-                </View>
-
-                {/* Preferences */}
-                <View style={styles.sectionWrapper}>
-                    <Text style={styles.sectionTitle}>Preferences</Text>
-                    <View style={styles.section}>
-                        <SettingsItem
-                            icon="chatbubble-ellipses-outline"
-                            label="Chat Settings"
-                            iconColor="#0091EA"
-                        />
-                        <SettingsItem
-                            icon="color-palette-outline"
-                            label="Appearance"
-                            iconColor="#AB47BC"
-                        />
-                        <SettingsItem
-                            icon="language-outline"
-                            label="Language"
-                            subtitle="English"
-                            iconColor="#26A69A"
-                        />
-                    </View>
-                </View>
-
-                {/* Help */}
-                <View style={styles.sectionWrapper}>
-                    <Text style={styles.sectionTitle}>Help</Text>
-                    <View style={styles.section}>
-                        <SettingsItem
-                            icon="help-circle-outline"
-                            label="Ask a Question"
-                            iconColor="#FF8F00"
-                        />
-                        <SettingsItem
-                            icon="chatbox-outline"
-                            label="Telegram FAQ"
-                            iconColor="#00897B"
-                        />
-                    </View>
-                </View>
-
-                {/* Sign Out */}
-                <View style={[styles.sectionWrapper, { marginBottom: 40 }]}>
-                    <View style={styles.section}>
-                        <SettingsItem
-                            icon="log-out-outline"
-                            label="Sign Out"
-                            danger
-                            showChevron={false}
-                            onPress={handleSignOut}
-                        />
-                    </View>
-                </View>
-
-                {/* Version */}
-                <Text style={styles.version}>Telegram Clone v1.0.0</Text>
             </ScrollView>
         </View>
     );
@@ -157,71 +137,121 @@ const SettingsScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.surfaceLight,
+        backgroundColor: Colors.background,
     },
     header: {
-        backgroundColor: Colors.headerBg,
-        paddingHorizontal: Spacing.lg,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
-        paddingBottom: Spacing.lg,
-    },
-    headerTitle: {
-        ...Typography.h2,
-        color: Colors.white,
-    },
-    profileCard: {
+        height: 56,
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.background,
-        padding: Spacing.lg,
-        marginBottom: Spacing.sm,
-        ...Shadows.sm,
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
     },
-    profileInfo: {
-        flex: 1,
-        marginLeft: Spacing.lg,
+    headerRight: {
+        flexDirection: 'row',
+    },
+    headerIcon: {
+        marginLeft: 20,
+    },
+    scrollContent: {
+        paddingBottom: 40,
+    },
+    profileBanner: {
+        alignItems: 'center',
+        paddingVertical: 20,
+    },
+    avatarContainer: {
+        position: 'relative',
+        marginBottom: 12,
+    },
+    cameraButton: {
+        position: 'absolute',
+        bottom: 0,
+        right: 0,
+        backgroundColor: Colors.primary,
+        width: 32,
+        height: 32,
+        borderRadius: 16,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 3,
+        borderColor: Colors.background,
     },
     profileName: {
-        ...Typography.h3,
-        color: Colors.textPrimary,
+        fontSize: 24,
+        fontWeight: 'bold',
+        color: Colors.white,
     },
     profilePhone: {
-        ...Typography.caption,
+        fontSize: 16,
         color: Colors.textSecondary,
         marginTop: 4,
     },
-    editIcon: {
-        width: 28,
-        height: 28,
+    confirmationBox: {
+        backgroundColor: Colors.surface,
+        margin: 16,
+        borderRadius: 16,
+        padding: 20,
+        alignItems: 'center',
+    },
+    confirmationTitle: {
+        fontSize: 17,
+        fontWeight: 'bold',
+        color: Colors.white,
+        textAlign: 'center',
+    },
+    confirmationSubtitle: {
+        fontSize: 14,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+        marginTop: 12,
+        lineHeight: 20,
+    },
+    linkText: {
+        color: Colors.primary,
+    },
+    confirmationButtons: {
+        flexDirection: 'row',
+        marginTop: 20,
+        gap: 12,
+    },
+    confirmButton: {
+        flex: 1,
+        height: 48,
+        borderRadius: 24,
+        flexDirection: 'row',
         justifyContent: 'center',
         alignItems: 'center',
     },
-    editIconText: {
-        fontSize: 22,
-        color: Colors.textSecondary,
-        fontWeight: '300',
+    confirmButtonNo: {
+        backgroundColor: '#1C2A36', // Lighter grey/blue for No
     },
-    sectionWrapper: {
-        marginTop: Spacing.sm,
+    confirmButtonYes: {
+        backgroundColor: Colors.primary,
     },
-    sectionTitle: {
-        ...Typography.caption,
-        color: Colors.primary,
-        fontWeight: '700',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.sm,
-        textTransform: 'uppercase',
-        letterSpacing: 0.5,
+    confirmButtonText: {
+        color: Colors.white,
+        fontSize: 16,
+        fontWeight: '600',
     },
-    section: {
-        backgroundColor: Colors.background,
+    menuContainer: {
+        backgroundColor: Colors.surface,
+        marginHorizontal: 16,
+        borderRadius: 16,
+        overflow: 'hidden',
     },
-    version: {
-        ...Typography.caption,
-        color: Colors.textSecondary,
-        textAlign: 'center',
-        paddingBottom: 30,
-        marginTop: -20,
+    signOutButton: {
+        marginTop: 24,
+        marginHorizontal: 16,
+        height: 48,
+        borderRadius: 12,
+        backgroundColor: Colors.surface,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    signOutText: {
+        color: Colors.danger,
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 

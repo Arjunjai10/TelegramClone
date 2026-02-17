@@ -1,45 +1,37 @@
 export const Colors = {
-    primary: '#0088CC',
-    primaryDark: '#006699',
+    primary: '#2AABEE', // Telegram Blue
+    primaryDark: '#1D3243', // Tab bubble / Active state
     primaryLight: '#54B4E8',
     secondary: '#2AABEE',
 
     // Message bubbles
-    sentBubble: '#EFFDDE',
-    sentBubbleText: '#000000',
-    receivedBubble: '#FFFFFF',
-    receivedBubbleText: '#000000',
-
-    // Dark mode message bubbles
-    sentBubbleDark: '#2B5278',
-    sentBubbleTextDark: '#FFFFFF',
-    receivedBubbleDark: '#182533',
-    receivedBubbleTextDark: '#FFFFFF',
+    sentBubble: '#2B5278',
+    sentBubbleText: '#FFFFFF',
+    receivedBubble: '#182533',
+    receivedBubbleText: '#FFFFFF',
 
     // Backgrounds
-    background: '#FFFFFF',
-    backgroundDark: '#17212B',
-    surfaceLight: '#F0F2F5',
+    background: '#0E1621', // Main dark background (Darker than before)
+    backgroundSecondary: '#17212B', // Header background
+    surface: '#17212B', // Section backgrounds
     surfaceDark: '#0E1621',
-    headerBg: '#517DA2',
-    headerBgDark: '#17212B',
+    headerBg: '#17212B',
+    headerBgDark: '#0E1621',
 
     // Text
-    textPrimary: '#000000',
-    textPrimaryDark: '#FFFFFF',
-    textSecondary: '#707579',
-    textSecondaryDark: '#6D7F8F',
-    textAccent: '#0088CC',
+    textPrimary: '#FFFFFF',
+    textSecondary: '#6D7F8F', // Muted blue-grey text
+    textAccent: '#2AABEE',
+    textLink: '#2AABEE',
 
     // UI
-    border: '#E0E0E0',
-    borderDark: '#263849',
-    divider: '#ECECEC',
-    dividerDark: '#1C2A36',
-    inputBg: '#F0F2F5',
-    inputBgDark: '#242F3D',
-    badge: '#4DCD5E',
-    online: '#4DCD5E',
+    border: '#1C2A36',
+    borderDark: '#1C2A36',
+    divider: '#0E1621',
+    inputBg: '#1F2933', // Search bar background
+    badge: '#2AABEE', // Unread badges
+    badgeMuted: '#6D7F8F',
+    online: '#2AABEE',
     danger: '#E53935',
     white: '#FFFFFF',
     black: '#000000',
@@ -47,8 +39,9 @@ export const Colors = {
     transparent: 'transparent',
 
     // Misc
-    checkmark: '#4FC3F7',
-    timestamp: '#A0ADB8',
+    checkmark: '#2AABEE',
+    timestamp: '#6D7F8F',
+    pinned: '#6D7F8F',
 };
 
 export const Typography = {

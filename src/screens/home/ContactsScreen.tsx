@@ -11,6 +11,7 @@ import {
     ActivityIndicator,
     Alert,
     PermissionsAndroid,
+    ScrollView,
 } from 'react-native';
 import Contacts from 'react-native-contacts';
 import { useNavigation } from '@react-navigation/native';
@@ -53,15 +54,13 @@ const ContactsScreen: React.FC = () => {
                     const deviceContacts = await Contacts.getAll();
                     const phoneNumbers = deviceContacts
                         .flatMap(c => c.phoneNumbers)
-                        .map(p => p.number.replace(/[^\d+]/g, '')) // basic normalization
-                        .filter(n => n.length >= 10); // filter invalid
+                        .map(p => p.number.replace(/[^\d+]/g, ''))
+                        .filter(n => n.length >= 10);
 
-                    // Remove duplicates
                     const uniqueNumbers = [...new Set(phoneNumbers)];
 
                     if (uniqueNumbers.length > 0) {
                         const matchedUsers = await userService.getUsersByPhoneNumbers(uniqueNumbers);
-                        // Filter out self
                         setContacts(matchedUsers.filter(u => u.id !== user.id));
                     } else {
                         setContacts([]);
@@ -83,21 +82,6 @@ const ContactsScreen: React.FC = () => {
         return c.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
     });
 
-    // Group contacts by first letter
-    const groupedContacts = filteredContacts.reduce((groups, contact) => {
-        const letter = (contact.displayName?.[0] || '#').toUpperCase();
-        if (!groups[letter]) groups[letter] = [];
-        groups[letter].push(contact);
-        return groups;
-    }, {} as Record<string, User[]>);
-
-    const sections = Object.keys(groupedContacts)
-        .sort()
-        .map((letter) => ({
-            letter,
-            data: groupedContacts[letter],
-        }));
-
     const handleContactPress = async (contact: User) => {
         if (!user?.id) return;
         try {
@@ -110,25 +94,11 @@ const ContactsScreen: React.FC = () => {
                 },
             });
         } catch (error) {
-            // Error alert already shown by chatStore
         }
     };
 
     const formatLastSeen = (contact: User): string => {
         if (contact.online) return 'online';
-        if (contact.lastSeen) {
-            const lastSeenVal = contact.lastSeen as any;
-            const lastSeen = lastSeenVal?.toDate ? lastSeenVal.toDate() : new Date(lastSeenVal);
-            const now = new Date();
-            const diffMs = now.getTime() - lastSeen.getTime();
-            const diffMins = Math.floor(diffMs / 60000);
-            if (diffMins < 1) return 'last seen just now';
-            if (diffMins < 60) return `last seen ${diffMins}m ago`;
-            const diffHours = Math.floor(diffMins / 60);
-            if (diffHours < 24) return `last seen ${diffHours}h ago`;
-            const diffDays = Math.floor(diffHours / 24);
-            return `last seen ${diffDays}d ago`;
-        }
         return 'last seen recently';
     };
 
@@ -141,13 +111,12 @@ const ContactsScreen: React.FC = () => {
             <Avatar
                 uri={contact.photoURL}
                 name={contact.displayName}
-                size={44}
-                showOnline
-                online={contact.online}
+                size={48}
+                showOnline={contact.online}
             />
             <View style={styles.contactInfo}>
                 <Text style={styles.contactName}>{contact.displayName}</Text>
-                <Text style={styles.contactStatus}>
+                <Text style={contact.online ? styles.contactStatusOnline : styles.contactStatus}>
                     {formatLastSeen(contact)}
                 </Text>
             </View>
@@ -159,15 +128,18 @@ const ContactsScreen: React.FC = () => {
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Contacts</Text>
+                <TouchableOpacity style={styles.headerAction}>
+                    <Icon name="stats-chart-outline" size={24} color={Colors.white} style={{ transform: [{ rotate: '90deg' }] }} />
+                </TouchableOpacity>
             </View>
 
             {/* Search */}
             <View style={styles.searchContainer}>
                 <View style={styles.searchBar}>
-                    <Icon name="search" size={18} color={Colors.textSecondary} />
+                    <Icon name="search" size={20} color={Colors.textSecondary} />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search contacts"
+                        placeholder="Search Contacts"
                         placeholderTextColor={Colors.textSecondary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
@@ -175,29 +147,41 @@ const ContactsScreen: React.FC = () => {
                 </View>
             </View>
 
-            {isLoading ? (
-                <View style={styles.loading}>
-                    <ActivityIndicator size="large" color={Colors.primary} />
+            <ScrollView contentContainerStyle={styles.scrollContent}>
+                {/* Action Cards */}
+                <View style={styles.actionCard}>
+                    <TouchableOpacity style={styles.actionItem}>
+                        <View style={[styles.actionIconContainer, { backgroundColor: '#2AABEE' }]}>
+                            <Icon name="person-add" size={20} color={Colors.white} />
+                        </View>
+                        <Text style={styles.actionText}>Invite Friends</Text>
+                    </TouchableOpacity>
+                    <View style={styles.actionDivider} />
+                    <TouchableOpacity style={styles.actionItem}>
+                        <View style={[styles.actionIconContainer, { backgroundColor: '#4DCD5E' }]}>
+                            <Icon name="call" size={20} color={Colors.white} />
+                        </View>
+                        <Text style={styles.actionText}>Recent calls</Text>
+                    </TouchableOpacity>
                 </View>
-            ) : (
-                <FlatList
-                    data={sections}
-                    keyExtractor={(item) => item.letter}
-                    renderItem={({ item }) => (
-                        <View>
-                            <Text style={styles.sectionHeader}>{item.letter}</Text>
-                            {item.data.map(renderContact)}
-                        </View>
-                    )}
-                    ListEmptyComponent={
-                        <View style={styles.emptyContainer}>
-                            <Icon name="people-outline" size={48} color={Colors.textSecondary} />
-                            <Text style={styles.emptyText}>No contacts found on TelegramClone</Text>
-                            <Text style={styles.emptySubText}>Invite your friends to join!</Text>
-                        </View>
-                    }
-                />
-            )}
+
+                {/* Section Header */}
+                <View style={styles.sectionHeaderContainer}>
+                    <Text style={styles.sectionHeaderText}>Sorted by last seen time</Text>
+                </View>
+
+                {/* Contacts List */}
+                {isLoading ? (
+                    <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 20 }} />
+                ) : (
+                    contacts.map(renderContact)
+                )}
+            </ScrollView>
+
+            {/* FAB */}
+            <TouchableOpacity style={styles.fab}>
+                <Icon name="person-add" size={24} color={Colors.white} />
+            </TouchableOpacity>
         </View>
     );
 };
@@ -208,83 +192,117 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     header: {
-        backgroundColor: Colors.headerBg,
-        paddingHorizontal: Spacing.lg,
-        paddingTop: STATUSBAR_HEIGHT,
-        paddingBottom: Spacing.lg,
+        height: 56,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingHorizontal: 16,
     },
     headerTitle: {
-        ...Typography.h2,
+        fontSize: 22,
+        fontWeight: '600',
         color: Colors.white,
     },
+    headerAction: {
+        padding: 4,
+    },
     searchContainer: {
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.sm,
-        backgroundColor: Colors.background,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: Colors.divider,
+        paddingHorizontal: 16,
+        paddingBottom: 16,
     },
     searchBar: {
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.inputBg,
-        borderRadius: BorderRadius.xl,
-        paddingHorizontal: Spacing.md,
-        height: 38,
-        gap: 8,
+        borderRadius: 12,
+        paddingHorizontal: 12,
+        height: 48,
     },
     searchInput: {
         flex: 1,
-        fontSize: 15,
-        color: Colors.textPrimary,
+        fontSize: 17,
+        color: Colors.white,
+        marginLeft: 12,
         padding: 0,
     },
-    loading: {
-        flex: 1,
+    scrollContent: {
+        paddingBottom: 80,
+    },
+    actionCard: {
+        backgroundColor: Colors.surface,
+        borderRadius: 12,
+        marginHorizontal: 16,
+        marginBottom: 24,
+        overflow: 'hidden',
+    },
+    actionItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        padding: 12,
+    },
+    actionIconContainer: {
+        width: 36,
+        height: 36,
+        borderRadius: 18,
         justifyContent: 'center',
         alignItems: 'center',
+        marginRight: 16,
     },
-    sectionHeader: {
-        ...Typography.caption,
+    actionText: {
+        fontSize: 17,
+        fontWeight: '500',
+        color: Colors.white,
+    },
+    actionDivider: {
+        height: 1,
+        backgroundColor: Colors.background,
+        marginLeft: 64,
+    },
+    sectionHeaderContainer: {
+        paddingHorizontal: 16,
+        paddingBottom: 12,
+    },
+    sectionHeaderText: {
+        fontSize: 16,
+        fontWeight: '600',
         color: Colors.primary,
-        fontWeight: '700',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.sm,
-        backgroundColor: Colors.surfaceLight,
     },
     contactItem: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
+        paddingHorizontal: 16,
+        paddingVertical: 10,
     },
     contactInfo: {
-        marginLeft: Spacing.md,
+        marginLeft: 16,
         flex: 1,
     },
     contactName: {
-        ...Typography.bodyBold,
-        color: Colors.textPrimary,
+        fontSize: 17,
+        fontWeight: '600',
+        color: Colors.white,
     },
     contactStatus: {
-        ...Typography.caption,
+        fontSize: 14,
         color: Colors.textSecondary,
         marginTop: 2,
     },
-    emptyContainer: {
-        flex: 1,
+    contactStatusOnline: {
+        fontSize: 14,
+        color: Colors.primary,
+        marginTop: 2,
+    },
+    fab: {
+        position: 'absolute',
+        bottom: 24,
+        right: 16,
+        width: 56,
+        height: 56,
+        borderRadius: 28,
+        backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingTop: 100,
-    },
-    emptyText: {
-        color: Colors.textSecondary,
-        marginTop: Spacing.md,
-    },
-    emptySubText: {
-        ...Typography.caption,
-        color: Colors.textSecondary,
-        marginTop: Spacing.sm,
+        elevation: 4,
     },
 });
 

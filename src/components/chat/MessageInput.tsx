@@ -12,20 +12,44 @@ import { Colors, Spacing, BorderRadius } from '../../constants/theme';
 interface MessageInputProps {
     onSend: (text: string) => void;
     onAttachPress?: () => void;
+    onTyping?: (isTyping: boolean) => void;
 }
 
 const MessageInput: React.FC<MessageInputProps> = ({
     onSend,
     onAttachPress,
+    onTyping,
 }) => {
     const [text, setText] = useState('');
     const inputRef = useRef<TextInput>(null);
+    const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     const handleSend = () => {
         const msg = text.trim();
         if (!msg) return;
         onSend(msg);
         setText('');
+        if (onTyping) {
+            onTyping(false);
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+        }
+    };
+
+    const handleTextChange = (val: string) => {
+        setText(val);
+        if (onTyping) {
+            onTyping(true);
+
+            if (typingTimeoutRef.current) {
+                clearTimeout(typingTimeoutRef.current);
+            }
+
+            typingTimeoutRef.current = setTimeout(() => {
+                onTyping(false);
+            }, 2000);
+        }
     };
 
     const hasText = text.trim().length > 0;
@@ -46,7 +70,7 @@ const MessageInput: React.FC<MessageInputProps> = ({
                     placeholder="Message"
                     placeholderTextColor={Colors.textSecondary}
                     value={text}
-                    onChangeText={setText}
+                    onChangeText={handleTextChange}
                     multiline
                     maxLength={4096}
                 />

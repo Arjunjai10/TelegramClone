@@ -154,6 +154,49 @@ class ChatService {
     async deleteChat(chatId: string): Promise<void> {
         await this.chatsCollection.doc(chatId).delete();
     }
+
+    /**
+     * Set typing status
+     */
+    async setTypingStatus(chatId: string, userId: string, isTyping: boolean): Promise<void> {
+        const typingRef = this.chatsCollection
+            .doc(chatId)
+            .collection('typing')
+            .doc(userId);
+
+        if (isTyping) {
+            await typingRef.set({
+                isTyping: true,
+                timestamp: firestore.FieldValue.serverTimestamp(),
+            });
+        } else {
+            await typingRef.delete();
+        }
+    }
+
+    /**
+     * Subscribe to typing status
+     */
+    subscribeToTypingStatus(
+        chatId: string,
+        callback: (typingUserIds: string[]) => void,
+    ): () => void {
+        return this.chatsCollection
+            .doc(chatId)
+            .collection('typing')
+            .where('isTyping', '==', true)
+            // Optional: filter by recent timestamp to avoid stuck indicators
+            // .where('timestamp', '>', ...) 
+            .onSnapshot(
+                snapshot => {
+                    const typingUserIds = snapshot.docs.map(doc => doc.id);
+                    callback(typingUserIds);
+                },
+                error => {
+                    console.error('Typing listener error:', error);
+                },
+            );
+    }
 }
 
 export const chatService = new ChatService();

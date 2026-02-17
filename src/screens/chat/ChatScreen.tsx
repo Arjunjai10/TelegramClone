@@ -16,6 +16,7 @@ import { Colors, Typography, Spacing } from '../../constants/theme';
 import { useAuthStore, useChatStore } from '../../store';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { storageService } from '../../services/storageService';
+import { chatService } from '../../services/chatService';
 import MessageBubble from '../../components/chat/MessageBubble';
 import MessageInput from '../../components/chat/MessageInput';
 import Avatar from '../../components/common/Avatar';
@@ -28,18 +29,37 @@ const ChatScreen: React.FC = () => {
     const { chatId, otherUser } = route.params;
     const { user } = useAuthStore();
     const { activeMessages, subscribeToMessages, sendMessage } = useChatStore();
+    const [isTyping, setIsTyping] = React.useState(false);
 
     useEffect(() => {
-        const unsubscribe = subscribeToMessages(chatId);
-        return () => unsubscribe();
-    }, [chatId, subscribeToMessages]);
+        const unsubscribeMessages = subscribeToMessages(chatId);
+
+        const unsubscribeTyping = chatService.subscribeToTypingStatus(chatId, (userIds) => {
+            const othersTyping = userIds.includes(otherUser.id);
+            setIsTyping(othersTyping);
+        });
+
+        return () => {
+            unsubscribeMessages();
+            unsubscribeTyping();
+        };
+    }, [chatId, subscribeToMessages, otherUser.id]);
 
     const handleSend = useCallback(
         (text: string) => {
             if (!user?.id) return;
             sendMessage(chatId, text, user.id);
+            chatService.setTypingStatus(chatId, user.id, false);
         },
         [chatId, user?.id, sendMessage],
+    );
+
+    const handleTyping = useCallback(
+        (typing: boolean) => {
+            if (!user?.id) return;
+            chatService.setTypingStatus(chatId, user.id, typing);
+        },
+        [chatId, user?.id],
     );
 
     const handleAttach = useCallback(async () => {
@@ -101,7 +121,7 @@ const ChatScreen: React.FC = () => {
                             {otherUser.displayName}
                         </Text>
                         <Text style={styles.headerStatus}>
-                            {otherUser.online ? 'online' : 'last seen recently'}
+                            {isTyping ? 'typing...' : otherUser.online ? 'online' : 'last seen recently'}
                         </Text>
                     </View>
                 </TouchableOpacity>
@@ -127,7 +147,11 @@ const ChatScreen: React.FC = () => {
             </View>
 
             {/* Input */}
-            <MessageInput onSend={handleSend} onAttachPress={handleAttach} />
+            <MessageInput
+                onSend={handleSend}
+                onAttachPress={handleAttach}
+                onTyping={handleTyping}
+            />
         </KeyboardAvoidingView>
     );
 };

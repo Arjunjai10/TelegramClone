@@ -10,6 +10,8 @@ import { GestureHandlerRootView } from 'react-native-gesture-handler';
 import AppNavigator from './src/navigation/AppNavigator';
 import ErrorBoundary from './src/components/common/ErrorBoundary';
 
+import NetworkBanner from './src/components/common/NetworkBanner';
+
 function App() {
   const isDarkMode = useColorScheme() === 'dark';
 
@@ -22,10 +24,12 @@ function App() {
             backgroundColor="transparent"
             translucent
           />
+          <NetworkBanner />
           <AppNavigator />
+
         </SafeAreaProvider>
       </ErrorBoundary>
-    </GestureHandlerRootView>
+    </GestureHandlerRootView >
   );
 }
 

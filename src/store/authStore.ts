@@ -14,6 +14,7 @@ interface AuthState {
     setIsLoading: (loading: boolean) => void;
     setIsProfileComplete: (complete: boolean) => void;
     signOut: () => Promise<void>;
+    loginWithGoogle: () => Promise<void>;
     checkProfileComplete: () => Promise<boolean>;
     initialize: () => () => void;
     confirmationResult: any | null;
@@ -46,6 +47,35 @@ export const useAuthStore = create<AuthState>((set, get) => ({
             isAuthenticated: false,
             isProfileComplete: false,
         });
+    },
+    loginWithGoogle: async () => {
+        set({ isLoading: true });
+        try {
+            const result = await authService.signInWithGoogle();
+            if (result?.user) {
+                set({ firebaseUser: result.user });
+                const userData = await userService.getUser(result.user.uid);
+                if (userData && userData.displayName) {
+                    set({
+                        user: userData,
+                        isAuthenticated: true,
+                        isProfileComplete: true,
+                        isLoading: false,
+                    });
+                    await userService.setOnlineStatus(result.user.uid, true);
+                } else {
+                    set({
+                        isAuthenticated: true,
+                        isProfileComplete: false,
+                        isLoading: false,
+                    });
+                }
+            }
+        } catch (error) {
+            console.error('Google login failed:', error);
+            set({ isLoading: false });
+            throw error;
+        }
     },
 
     checkProfileComplete: async () => {

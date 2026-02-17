@@ -93,21 +93,21 @@ android {
             keyAlias 'androiddebugkey'
             keyPassword 'android'
         }
-        // TODO: For Play Store release, generate a keystore and configure:
-        // release {
-        //     storeFile file('your-release-key.keystore')
-        //     storePassword 'YOUR_STORE_PASSWORD'
-        //     keyAlias 'YOUR_KEY_ALIAS'
-        //     keyPassword 'YOUR_KEY_PASSWORD'
-        // }
+        release {
+            if (project.hasProperty('MYAPP_UPLOAD_STORE_FILE')) {
+                storeFile file(MYAPP_UPLOAD_STORE_FILE)
+                storePassword MYAPP_UPLOAD_STORE_PASSWORD
+                keyAlias MYAPP_UPLOAD_KEY_ALIAS
+                keyPassword MYAPP_UPLOAD_KEY_PASSWORD
+            }
+        }
     }
     buildTypes {
         debug {
             signingConfig signingConfigs.debug
         }
         release {
-            // For Play Store: change to signingConfigs.release after generating keystore
-            signingConfig signingConfigs.debug
+            signingConfig signingConfigs.release
             minifyEnabled enableProguardInReleaseBuilds
             shrinkResources true
             proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"

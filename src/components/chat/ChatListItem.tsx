@@ -6,6 +6,7 @@ import {
     StyleSheet,
 } from 'react-native';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
+import Icon from 'react-native-vector-icons/Ionicons';
 import Avatar from '../common/Avatar';
 import { Chat } from '../../constants/types';
 import { Colors, Typography, Spacing } from '../../constants/theme';
@@ -32,6 +33,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
 }) => {
     const otherUser = chat.otherUser;
     const lastMsg = chat.lastMessage;
+    const isPinned = chat.participants.length > 5; // Placeholder logic for pinning
 
     return (
         <TouchableOpacity
@@ -42,27 +44,36 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
             <Avatar
                 uri={otherUser?.photoURL}
                 name={otherUser?.displayName || 'User'}
-                size={52}
-                showOnline
-                online={otherUser?.online || false}
+                size={54}
+                showOnline={otherUser?.online}
             />
             <View style={styles.content}>
                 <View style={styles.topRow}>
-                    <Text style={styles.name} numberOfLines={1}>
-                        {otherUser?.displayName || 'Unknown'}
-                    </Text>
-                    <Text style={styles.time}>
-                        {lastMsg?.timestamp ? formatTime(lastMsg.timestamp) : ''}
-                    </Text>
+                    <View style={styles.nameContainer}>
+                        <Text style={styles.name} numberOfLines={1}>
+                            {otherUser?.displayName || 'Unknown'}
+                        </Text>
+                        {otherUser?.id === 'bot' && (
+                            <Icon name="volume-mute" size={14} color={Colors.textSecondary} style={styles.mutedIcon} />
+                        )}
+                    </View>
+                    <View style={styles.timeContainer}>
+                        {isPinned && (
+                            <Icon name="pin" size={14} color={Colors.pinned} style={styles.pinnedIcon} />
+                        )}
+                        <Text style={styles.time}>
+                            {lastMsg?.timestamp ? formatTime(lastMsg.timestamp) : ''}
+                        </Text>
+                    </View>
                 </View>
                 <View style={styles.bottomRow}>
                     <Text style={styles.lastMessage} numberOfLines={1}>
                         {lastMsg?.text || 'Start a conversation'}
                     </Text>
                     {chat.unreadCount > 0 && (
-                        <View style={styles.unreadBadge}>
+                        <View style={[styles.unreadBadge, chat.unreadCount > 1000 && styles.unreadBadgeMuted]}>
                             <Text style={styles.unreadCount}>
-                                {chat.unreadCount > 99 ? '99+' : chat.unreadCount}
+                                {chat.unreadCount > 999 ? chat.unreadCount : chat.unreadCount}
                             </Text>
                         </View>
                     )}
@@ -77,30 +88,44 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         paddingHorizontal: Spacing.lg,
-        paddingVertical: Spacing.md,
+        paddingVertical: 12,
         backgroundColor: Colors.background,
     },
     content: {
         flex: 1,
-        marginLeft: Spacing.md,
-        borderBottomWidth: StyleSheet.hairlineWidth,
-        borderBottomColor: Colors.divider,
-        paddingBottom: Spacing.md,
+        marginLeft: 14,
+        paddingBottom: 4,
     },
     topRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 4,
+        marginBottom: 2,
+    },
+    nameContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        flex: 1,
     },
     name: {
-        ...Typography.bodyBold,
+        fontSize: 17,
+        fontWeight: '600',
         color: Colors.textPrimary,
-        flex: 1,
-        marginRight: Spacing.sm,
+        marginRight: 4,
+    },
+    mutedIcon: {
+        marginLeft: 4,
+    },
+    timeContainer: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    pinnedIcon: {
+        marginRight: 6,
+        transform: [{ rotate: '45deg' }],
     },
     time: {
-        ...Typography.caption,
+        fontSize: 13,
         color: Colors.textSecondary,
     },
     bottomRow: {
@@ -109,25 +134,27 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     lastMessage: {
-        ...Typography.caption,
+        fontSize: 15,
         color: Colors.textSecondary,
         flex: 1,
         marginRight: Spacing.sm,
-        fontSize: 14,
     },
     unreadBadge: {
         backgroundColor: Colors.badge,
         borderRadius: 12,
-        minWidth: 22,
-        height: 22,
+        minWidth: 24,
+        height: 24,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 6,
+        paddingHorizontal: 8,
+    },
+    unreadBadgeMuted: {
+        backgroundColor: Colors.badgeMuted,
     },
     unreadCount: {
         color: Colors.white,
         fontSize: 12,
-        fontWeight: '700',
+        fontWeight: 'bold',
     },
 });
 
