@@ -1,4 +1,12 @@
-import auth, { FirebaseAuthTypes } from '@react-native-firebase/auth';
+import {
+    getAuth,
+    signInWithCredential,
+    onAuthStateChanged,
+    signOut,
+    GoogleAuthProvider,
+    FirebaseAuthTypes,
+    signInWithPhoneNumber as firebaseSignInWithPhoneNumber,
+} from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
 
 class AuthService {
@@ -9,66 +17,79 @@ class AuthService {
     }
 
     /**
-     * Send OTP to phone number
+     * Send OTP to a phone number in E.164 format (e.g. +91XXXXXXXXXX).
      */
-    async signInWithPhoneNumber(
-        phoneNumber: string,
-    ): Promise<FirebaseAuthTypes.ConfirmationResult> {
-        return auth().signInWithPhoneNumber(phoneNumber);
+    async signInWithPhoneNumber(phoneNumber: string): Promise<FirebaseAuthTypes.ConfirmationResult> {
+        try {
+            return await firebaseSignInWithPhoneNumber(getAuth(), phoneNumber);
+        } catch (error) {
+            console.error('[authService.signInWithPhoneNumber]', error);
+            throw new Error('Failed to send OTP. Check the phone number and try again.');
+        }
     }
 
     /**
-     * Confirm OTP code
+     * Confirm the OTP code received on phone.
      */
     async confirmCode(
         confirmation: FirebaseAuthTypes.ConfirmationResult,
         code: string,
     ): Promise<FirebaseAuthTypes.UserCredential | null> {
-        return confirmation.confirm(code);
+        try {
+            return await confirmation.confirm(code);
+        } catch (error) {
+            console.error('[authService.confirmCode]', error);
+            throw new Error('Invalid OTP code. Please try again.');
+        }
     }
 
     /**
-     * Sign in with Google
+     * Sign in with Google via Google Sign-In + Firebase credential.
      */
     async signInWithGoogle(): Promise<FirebaseAuthTypes.UserCredential | null> {
-        await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
-        const signInResult = await GoogleSignin.signIn();
-
-        let idToken = signInResult.data?.idToken;
-        if (!idToken) {
-            throw new Error('No ID token found');
+        try {
+            await GoogleSignin.hasPlayServices({ showPlayServicesUpdateDialog: true });
+            const signInResult = await GoogleSignin.signIn();
+            const idToken = signInResult.data?.idToken;
+            if (!idToken) throw new Error('No ID token returned from Google Sign-In');
+            const credential = GoogleAuthProvider.credential(idToken);
+            return await signInWithCredential(getAuth(), credential);
+        } catch (error) {
+            console.error('[authService.signInWithGoogle]', error);
+            throw new Error('Google sign-in failed. Please try again.');
         }
-
-        const googleCredential = auth.GoogleAuthProvider.credential(idToken);
-        return auth().signInWithCredential(googleCredential);
     }
 
     /**
-     * Sign out
+     * Sign out from both Google and Firebase.
      */
     async signOut(): Promise<void> {
         try {
             await GoogleSignin.signOut();
-        } catch (e) {
-            // Ignore if not signed in with Google
+        } catch {
+            // User may not have signed in with Google — safe to ignore
         }
-        return auth().signOut();
+        try {
+            await signOut(getAuth());
+        } catch (error) {
+            console.error('[authService.signOut]', error);
+            throw new Error('Sign-out failed');
+        }
     }
 
     /**
-     * Get current user
+     * Returns the currently signed-in Firebase user, or null.
      */
     getCurrentUser(): FirebaseAuthTypes.User | null {
-        return auth().currentUser;
+        return getAuth().currentUser;
     }
 
     /**
-     * Listen to auth state changes
+     * Subscribe to auth state changes.
+     * Returns an unsubscribe function — call it in useEffect cleanup.
      */
-    onAuthStateChanged(
-        callback: (user: FirebaseAuthTypes.User | null) => void,
-    ): () => void {
-        return auth().onAuthStateChanged(callback);
+    onAuthStateChanged(callback: (user: FirebaseAuthTypes.User | null) => void): () => void {
+        return onAuthStateChanged(getAuth(), callback);
     }
 }
 

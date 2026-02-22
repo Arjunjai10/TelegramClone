@@ -40,6 +40,8 @@ const ContactsScreen: React.FC = () => {
         if (!user?.id) return;
         setIsLoading(true);
         try {
+            let hasPermission = false;
+
             if (Platform.OS === 'android') {
                 const granted = await PermissionsAndroid.request(
                     PermissionsAndroid.PERMISSIONS.READ_CONTACTS,
@@ -49,29 +51,49 @@ const ContactsScreen: React.FC = () => {
                         buttonPositive: 'OK',
                     },
                 );
+                hasPermission = granted === PermissionsAndroid.RESULTS.GRANTED;
+            } else {
+                // iOS
+                const status = await Contacts.requestPermission();
+                hasPermission = status === 'authorized';
+            }
 
-                if (granted === PermissionsAndroid.RESULTS.GRANTED) {
-                    const deviceContacts = await Contacts.getAll();
-                    const phoneNumbers = deviceContacts
-                        .flatMap(c => c.phoneNumbers)
-                        .map(p => p.number.replace(/[^\d+]/g, ''))
-                        .filter(n => n.length >= 10);
+            if (hasPermission) {
+                const deviceContacts = await Contacts.getAll();
+                const phoneNumbers = deviceContacts
+                    .flatMap(c => c.phoneNumbers)
+                    .map(p => p.number.replace(/[^\d+]/g, ''))
+                    .filter(n => n.length >= 10);
 
-                    const uniqueNumbers = [...new Set(phoneNumbers)];
+                const uniqueNumbers = [...new Set(phoneNumbers)];
 
-                    if (uniqueNumbers.length > 0) {
-                        const matchedUsers = await userService.getUsersByPhoneNumbers(uniqueNumbers);
+                if (uniqueNumbers.length > 0) {
+                    const matchedUsers = await userService.getUsersByPhoneNumbers(uniqueNumbers);
+
+                    if (matchedUsers.length > 0) {
                         setContacts(matchedUsers.filter(u => u.id !== user.id));
                     } else {
-                        setContacts([]);
+                        // Fallback: If no contacts match, show some recommended users
+                        const allUsers = await userService.getAllUsers(user.id);
+                        setContacts(allUsers);
                     }
                 } else {
-                    Alert.alert('Permission Denied', 'Cannot sync contacts without permission.');
+                    // Fallback if device has no contacts
+                    const allUsers = await userService.getAllUsers(user.id);
+                    setContacts(allUsers);
                 }
+            } else {
+                // Fallback if permission denied
+                const allUsers = await userService.getAllUsers(user.id);
+                setContacts(allUsers);
             }
         } catch (error) {
             console.error('Failed to load contacts:', error);
-            Alert.alert('Error', 'Failed to sync contacts.');
+            // Fallback on error
+            try {
+                const allUsers = await userService.getAllUsers(user.id);
+                setContacts(allUsers);
+            } catch (e) { }
         } finally {
             setIsLoading(false);
         }
@@ -86,7 +108,7 @@ const ContactsScreen: React.FC = () => {
         if (!user?.id) return;
         try {
             const chatId = await createChat(user.id, contact.id);
-            navigation.navigate('ChatStack', {
+            navigation.navigate('ChatsTab', {
                 screen: 'Chat',
                 params: {
                     chatId,
@@ -123,13 +145,52 @@ const ContactsScreen: React.FC = () => {
         </TouchableOpacity>
     );
 
+    const renderEmpty = () => (
+        <View style={styles.emptyContainer}>
+            <Icon name="people-outline" size={64} color={Colors.textSecondary} />
+            <Text style={styles.emptyTitle}>No contacts found</Text>
+            <Text style={styles.emptySubtitle}>
+                Invite your friends to Telegram or wait for them to join!
+            </Text>
+            <TouchableOpacity style={styles.refreshButton} onPress={loadContacts}>
+                <Text style={styles.refreshButtonText}>Sync Contacts</Text>
+            </TouchableOpacity>
+        </View>
+    );
+
+    const renderHeader = () => (
+        <View>
+            {/* Action Cards */}
+            <View style={styles.actionCard}>
+                <TouchableOpacity style={styles.actionItem}>
+                    <View style={[styles.actionIconContainer, { backgroundColor: '#2AABEE' }]}>
+                        <Icon name="person-add" size={20} color={Colors.white} />
+                    </View>
+                    <Text style={styles.actionText}>Invite Friends</Text>
+                </TouchableOpacity>
+                <View style={styles.actionDivider} />
+                <TouchableOpacity style={styles.actionItem}>
+                    <View style={[styles.actionIconContainer, { backgroundColor: '#4DCD5E' }]}>
+                        <Icon name="call" size={20} color={Colors.white} />
+                    </View>
+                    <Text style={styles.actionText}>Recent calls</Text>
+                </TouchableOpacity>
+            </View>
+
+            {/* Section Header */}
+            <View style={styles.sectionHeaderContainer}>
+                <Text style={styles.sectionHeaderText}>Sorted by last seen time</Text>
+            </View>
+        </View>
+    );
+
     return (
         <View style={styles.container}>
             {/* Header */}
             <View style={styles.header}>
                 <Text style={styles.headerTitle}>Contacts</Text>
-                <TouchableOpacity style={styles.headerAction}>
-                    <Icon name="stats-chart-outline" size={24} color={Colors.white} style={{ transform: [{ rotate: '90deg' }] }} />
+                <TouchableOpacity style={styles.headerAction} onPress={loadContacts}>
+                    <Icon name="refresh-outline" size={24} color={Colors.white} />
                 </TouchableOpacity>
             </View>
 
@@ -147,39 +208,19 @@ const ContactsScreen: React.FC = () => {
                 </View>
             </View>
 
-            <ScrollView contentContainerStyle={styles.scrollContent}>
-                {/* Action Cards */}
-                <View style={styles.actionCard}>
-                    <TouchableOpacity style={styles.actionItem}>
-                        <View style={[styles.actionIconContainer, { backgroundColor: '#2AABEE' }]}>
-                            <Icon name="person-add" size={20} color={Colors.white} />
-                        </View>
-                        <Text style={styles.actionText}>Invite Friends</Text>
-                    </TouchableOpacity>
-                    <View style={styles.actionDivider} />
-                    <TouchableOpacity style={styles.actionItem}>
-                        <View style={[styles.actionIconContainer, { backgroundColor: '#4DCD5E' }]}>
-                            <Icon name="call" size={20} color={Colors.white} />
-                        </View>
-                        <Text style={styles.actionText}>Recent calls</Text>
-                    </TouchableOpacity>
-                </View>
-
-                {/* Section Header */}
-                <View style={styles.sectionHeaderContainer}>
-                    <Text style={styles.sectionHeaderText}>Sorted by last seen time</Text>
-                </View>
-
-                {/* Contacts List */}
-                {isLoading ? (
-                    <ActivityIndicator size="small" color={Colors.primary} style={{ marginTop: 20 }} />
-                ) : (
-                    contacts.map(renderContact)
-                )}
-            </ScrollView>
+            <FlatList
+                data={filteredContacts}
+                keyExtractor={(item) => item.id}
+                renderItem={({ item }) => renderContact(item)}
+                ListHeaderComponent={renderHeader}
+                ListEmptyComponent={!isLoading ? renderEmpty : null}
+                contentContainerStyle={styles.scrollContent}
+                refreshing={isLoading}
+                onRefresh={loadContacts}
+            />
 
             {/* FAB */}
-            <TouchableOpacity style={styles.fab}>
+            <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewChat')}>
                 <Icon name="person-add" size={24} color={Colors.white} />
             </TouchableOpacity>
         </View>
@@ -192,7 +233,8 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     header: {
-        height: 56,
+        height: Platform.OS === 'ios' ? 88 : 56 + (StatusBar.currentHeight || 24),
+        paddingTop: STATUSBAR_HEIGHT,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
@@ -303,6 +345,40 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         elevation: 4,
+    },
+    emptyContainer: {
+        flex: 1,
+        justifyContent: 'center',
+        alignItems: 'center',
+        paddingHorizontal: 40,
+        paddingTop: 80,
+    },
+    emptyTitle: {
+        fontSize: 20,
+        fontWeight: 'bold',
+        color: Colors.white,
+        marginTop: 16,
+    },
+    emptySubtitle: {
+        fontSize: 15,
+        color: Colors.textSecondary,
+        textAlign: 'center',
+        marginTop: 8,
+        lineHeight: 22,
+    },
+    refreshButton: {
+        marginTop: 24,
+        paddingVertical: 10,
+        paddingHorizontal: 20,
+        backgroundColor: Colors.primary + '20',
+        borderRadius: 20,
+        borderWidth: 1,
+        borderColor: Colors.primary,
+    },
+    refreshButtonText: {
+        color: Colors.primary,
+        fontSize: 16,
+        fontWeight: '600',
     },
 });
 

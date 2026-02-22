@@ -1,77 +1,76 @@
 import storage from '@react-native-firebase/storage';
-import { Alert, Platform } from 'react-native';
+
+export interface UploadResult {
+    url: string;
+    /** True if upload was blocked by storage plan limitations (Spark plan) */
+    blocked: boolean;
+}
 
 /**
- * Storage service with Firebase Storage integration.
- * If Firebase Storage is available (Blaze plan), uploads work normally.
- * If unavailable, methods gracefully return empty strings.
+ * Firebase Storage service.
+ *
+ * NOTE: Firebase Storage requires the Blaze (pay-as-you-go) plan.
+ * On Spark plan, uploads return { url: '', blocked: true }.
+ * The caller is responsible for displaying any UI feedback based on `blocked`.
+ *
+ * Storage does NOT import Alert or Platform — those are UI concerns.
+ * Pass the platform-resolved URI from the caller (see uploadAvatar / uploadChatImage).
  */
 class StorageService {
-    private hasShownAlert = false;
-
-    private showUpgradeAlert() {
-        if (!this.hasShownAlert) {
-            this.hasShownAlert = true;
-            Alert.alert(
-                'Feature Unavailable',
-                'Image uploads require Firebase Storage (Blaze plan). Text messaging works perfectly!',
-            );
-        }
-    }
-
     /**
-     * Upload a file to Firebase Storage
+     * Upload a file to the given storage path.
+     * Returns the download URL on success, or a blocked result on Spark plan.
      */
-    async uploadFile(storagePath: string, localUri: string): Promise<string> {
+    async uploadFile(storagePath: string, localUri: string): Promise<UploadResult> {
         try {
-            const uploadUri =
-                Platform.OS === 'ios' ? localUri.replace('file://', '') : localUri;
             const ref = storage().ref(storagePath);
-            await ref.putFile(uploadUri);
-            const downloadURL = await ref.getDownloadURL();
-            return downloadURL;
+            await ref.putFile(localUri);
+            const url = await ref.getDownloadURL();
+            return { url, blocked: false };
         } catch (error: any) {
-            // Check if storage is not available (Spark plan)
-            if (
+            const isStorageBlocked =
                 error?.code === 'storage/unauthorized' ||
                 error?.code === 'storage/unknown' ||
-                error?.message?.includes('billing')
-            ) {
-                this.showUpgradeAlert();
-                return '';
+                error?.message?.includes('billing');
+
+            if (isStorageBlocked) {
+                console.warn('[storageService] Storage unavailable on Spark plan');
+                return { url: '', blocked: true };
             }
-            console.error('Upload failed:', error);
-            throw error;
+
+            console.error('[storageService.uploadFile]', error);
+            throw new Error('File upload failed');
         }
     }
 
     /**
-     * Upload user avatar
+     * Upload a user avatar image.
+     * Pass a file URI with platform pre-processing applied by the caller:
+     *   Platform.OS === 'ios' ? uri.replace('file://', '') : uri
      */
-    async uploadAvatar(userId: string, uri: string): Promise<string> {
+    async uploadAvatar(userId: string, uri: string): Promise<UploadResult> {
         const path = `avatars/${userId}_${Date.now()}.jpg`;
         return this.uploadFile(path, uri);
     }
 
     /**
-     * Upload chat image
+     * Upload a chat image.
      */
-    async uploadChatImage(chatId: string, uri: string): Promise<string> {
+    async uploadChatImage(chatId: string, uri: string): Promise<UploadResult> {
         const path = `chats/${chatId}/${Date.now()}.jpg`;
         return this.uploadFile(path, uri);
     }
 
     /**
-     * Delete a file from storage
+     * Delete a file from storage by its path.
      */
     async deleteFile(path: string): Promise<void> {
         try {
             await storage().ref(path).delete();
         } catch (error) {
-            console.warn('Failed to delete file:', error);
+            console.warn('[storageService.deleteFile]', error);
         }
     }
 }
 
 export const storageService = new StorageService();
-

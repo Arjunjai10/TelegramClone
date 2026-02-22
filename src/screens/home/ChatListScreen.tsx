@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useRef } from 'react';
 import {
     View,
     Text,
@@ -8,18 +8,21 @@ import {
     StyleSheet,
     RefreshControl,
     ScrollView,
+    StatusBar,
+    Animated,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Swipeable } from 'react-native-gesture-handler';
-import { Alert, Animated } from 'react-native';
+import { Alert } from 'react-native';
 import { ChatStackParamList, Chat } from '../../constants/types';
-import { Colors, Typography, Spacing, BorderRadius, Shadows } from '../../constants/theme';
+import { Colors, BorderRadius } from '../../constants/theme';
 import { useAuthStore, useChatStore } from '../../store';
 import ChatListItem from '../../components/chat/ChatListItem';
 
 type NavProp = StackNavigationProp<ChatStackParamList, 'ChatList'>;
+type FilterKey = 'All' | 'Unread' | 'Groups' | 'Bots';
 
 const ChatListScreen: React.FC = () => {
     const navigation = useNavigation<NavProp>();
@@ -27,6 +30,21 @@ const ChatListScreen: React.FC = () => {
     const { chats, isLoadingChats, subscribeToChats } = useChatStore();
     const [searchQuery, setSearchQuery] = useState('');
     const [refreshing, setRefreshing] = useState(false);
+    const [filterType, setFilterType] = useState<FilterKey>('All');
+    const [searchFocused, setSearchFocused] = useState(false);
+
+    const fabScale = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+        const pulse = Animated.loop(
+            Animated.sequence([
+                Animated.timing(fabScale, { toValue: 1.07, duration: 1400, useNativeDriver: true }),
+                Animated.timing(fabScale, { toValue: 1, duration: 1400, useNativeDriver: true }),
+            ])
+        );
+        pulse.start();
+        return () => pulse.stop();
+    }, []);
 
     useEffect(() => {
         if (!user?.id) return;
@@ -35,69 +53,52 @@ const ChatListScreen: React.FC = () => {
     }, [user?.id, subscribeToChats]);
 
     const filteredChats = chats.filter((chat) => {
-        if (!searchQuery.trim()) return true;
-        return (
-            chat.otherUser?.displayName
-                ?.toLowerCase()
-                .includes(searchQuery.toLowerCase()) || false
-        );
+        const matchesSearch = !searchQuery.trim() ||
+            chat.otherUser?.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
+        if (!matchesSearch) return false;
+        if (filterType === 'Unread') return chat.unreadCount > 0;
+        if (filterType === 'Groups') return chat.participants.length > 2;
+        if (filterType === 'Bots') return chat.otherUser?.isBot || false;
+        return true;
     });
+
+    const unreadCount = chats.filter((c) => c.unreadCount > 0).length;
 
     const onRefresh = useCallback(() => {
         if (!user?.id) return;
         setRefreshing(true);
-        // Re-subscribe triggers a fresh fetch from Firestore
-        const unsub = subscribeToChats(user.id);
-        // Wait briefly for data, then stop refresh indicator
-        setTimeout(() => {
-            setRefreshing(false);
-        }, 1500);
-        // Clean up the duplicate subscription
-        return () => unsub();
+        subscribeToChats(user.id);
+        setTimeout(() => setRefreshing(false), 1500);
     }, [user?.id, subscribeToChats]);
 
     const handleChatPress = (chat: Chat) => {
         if (!chat.otherUser) return;
-        navigation.navigate('Chat', {
-            chatId: chat.id,
-            otherUser: chat.otherUser,
-        });
+        navigation.navigate('Chat', { chatId: chat.id, otherUser: chat.otherUser });
     };
 
     const handleDeleteChat = (chat: Chat) => {
-        Alert.alert(
-            'Delete Chat',
-            'Are you sure you want to delete this chat? This action cannot be undone.',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Delete',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            await useChatStore.getState().deleteChat(chat.id);
-                        } catch (error) {
-                            Alert.alert('Error', 'Failed to delete chat');
-                        }
-                    },
+        Alert.alert('Delete Chat', 'This will permanently remove the conversation.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete', style: 'destructive',
+                onPress: async () => {
+                    try { await useChatStore.getState().deleteChat(chat.id); }
+                    catch { Alert.alert('Error', 'Failed to delete chat'); }
                 },
-            ]
-        );
+            },
+        ]);
     };
 
-    const renderRightActions = (progress: Animated.AnimatedInterpolation<number>, dragX: Animated.AnimatedInterpolation<number>, chat: Chat) => {
-        const trans = dragX.interpolate({
-            inputRange: [-80, 0],
-            outputRange: [1, 0],
-            extrapolate: 'clamp',
-        });
-
+    const renderRightActions = (
+        progress: Animated.AnimatedInterpolation<number>,
+        _dragX: Animated.AnimatedInterpolation<number>,
+        chat: Chat
+    ) => {
+        const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1], extrapolate: 'clamp' });
         return (
-            <TouchableOpacity
-                style={styles.deleteAction}
-                onPress={() => handleDeleteChat(chat)}>
-                <Animated.View style={{ transform: [{ scale: trans }] }}>
-                    <Icon name="trash-outline" size={24} color="white" />
+            <TouchableOpacity style={styles.deleteAction} onPress={() => handleDeleteChat(chat)}>
+                <Animated.View style={{ transform: [{ scale }], alignItems: 'center' }}>
+                    <Icon name="trash-outline" size={20} color="white" />
                     <Text style={styles.deleteText}>Delete</Text>
                 </Animated.View>
             </TouchableOpacity>
@@ -105,77 +106,101 @@ const ChatListScreen: React.FC = () => {
     };
 
     const renderItem = ({ item }: { item: Chat }) => (
-        <Swipeable
-            renderRightActions={(progress, dragX) =>
-                renderRightActions(progress, dragX, item)
-            }>
-            <ChatListItem
-                chat={item}
-                onPress={() => handleChatPress(item)}
-            />
+        <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item)}>
+            <ChatListItem chat={item} onPress={() => handleChatPress(item)} />
         </Swipeable>
     );
 
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
-            <Icon name="chatbubbles-outline" size={64} color={Colors.textSecondary} />
-            <Text style={styles.emptyTitle}>No chats yet</Text>
-            <Text style={styles.emptySubtitle}>
-                Start a new conversation by tapping the button below
-            </Text>
+            <View style={styles.emptyIconBg}>
+                <Icon name="chatbubbles-outline" size={38} color={Colors.primary} />
+            </View>
+            <Text style={styles.emptyTitle}>No conversations yet</Text>
+            <Text style={styles.emptySubtitle}>Tap the compose button to start messaging</Text>
         </View>
     );
 
+    const filterTabs: { key: FilterKey; label: string; badge?: number }[] = [
+        { key: 'All', label: 'All' },
+        { key: 'Unread', label: 'Unread', badge: unreadCount > 0 ? unreadCount : undefined },
+        { key: 'Groups', label: 'Groups' },
+        { key: 'Bots', label: 'Bots' },
+    ];
+
     return (
         <View style={styles.container}>
-            {/* Custom Header */}
+            <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
+
+            {/* Header */}
             <View style={styles.header}>
                 <View style={styles.headerLeft}>
-                    <Icon name="logo-telegram" size={28} color={Colors.white} />
-                    <Text style={styles.headerTitle}>Telegram</Text>
+                    <View style={styles.logoMark}>
+                        <View style={styles.logoInner} />
+                    </View>
+                    <Text style={styles.headerTitle}>Messages</Text>
                 </View>
                 <View style={styles.headerRight}>
                     <TouchableOpacity style={styles.headerAction}>
-                        <Icon name="ellipsis-vertical" size={20} color={Colors.white} />
+                        <Icon name="search" size={21} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.headerAction}>
+                        <Icon name="ellipsis-horizontal" size={21} color={Colors.textSecondary} />
                     </TouchableOpacity>
                 </View>
             </View>
 
             {/* Search Bar */}
             <View style={styles.searchContainer}>
-                <View style={styles.searchBar}>
-                    <Icon name="search" size={18} color={Colors.textSecondary} style={{ marginLeft: 8 }} />
+                <View style={[styles.searchBar, searchFocused && styles.searchBarFocused]}>
+                    <Icon
+                        name="search"
+                        size={16}
+                        color={searchFocused ? Colors.primary : Colors.textTertiary}
+                        style={{ marginLeft: 14 }}
+                    />
                     <TextInput
                         style={styles.searchInput}
-                        placeholder="Search Chats"
-                        placeholderTextColor={Colors.textSecondary}
+                        placeholder="Search"
+                        placeholderTextColor={Colors.textTertiary}
                         value={searchQuery}
                         onChangeText={setSearchQuery}
+                        onFocus={() => setSearchFocused(true)}
+                        onBlur={() => setSearchFocused(false)}
+                        selectionColor={Colors.primary}
                     />
+                    {searchQuery.length > 0 && (
+                        <TouchableOpacity onPress={() => setSearchQuery('')} style={{ paddingRight: 12 }}>
+                            <Icon name="close-circle" size={16} color={Colors.textTertiary} />
+                        </TouchableOpacity>
+                    )}
                 </View>
             </View>
 
-            {/* Filter Tabs */}
+            {/* Filter Pills — real data only, no static counts */}
             <View style={styles.filterWrapper}>
                 <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterContent}>
-                    <TouchableOpacity style={[styles.filterTab, styles.filterTabActive]}>
-                        <Text style={styles.filterTextActive}>All Chats</Text>
-                        <View style={styles.filterBadgeActive}>
-                            <Text style={styles.filterBadgeTextActive}>29</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterTab}>
-                        <Text style={styles.filterText}>Series 🔥</Text>
-                        <View style={styles.filterBadge}>
-                            <Text style={styles.filterBadgeText}>41</Text>
-                        </View>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterTab}>
-                        <Text style={styles.filterText}>Groups</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.filterTab}>
-                        <Text style={styles.filterText}>Bots</Text>
-                    </TouchableOpacity>
+                    {filterTabs.map((tab) => {
+                        const isActive = filterType === tab.key;
+                        return (
+                            <TouchableOpacity
+                                key={tab.key}
+                                style={[styles.filterTab, isActive && styles.filterTabActive]}
+                                onPress={() => setFilterType(tab.key)}
+                                activeOpacity={0.7}>
+                                <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
+                                    {tab.label}
+                                </Text>
+                                {tab.badge !== undefined && tab.badge > 0 && (
+                                    <View style={[styles.filterBadge, isActive && styles.filterBadgeActive]}>
+                                        <Text style={[styles.filterBadgeText, isActive && styles.filterBadgeTextActive]}>
+                                            {tab.badge}
+                                        </Text>
+                                    </View>
+                                )}
+                            </TouchableOpacity>
+                        );
+                    })}
                 </ScrollView>
             </View>
 
@@ -186,184 +211,193 @@ const ChatListScreen: React.FC = () => {
                 renderItem={renderItem}
                 ListEmptyComponent={!isLoadingChats ? renderEmpty : null}
                 refreshControl={
-                    <RefreshControl
-                        refreshing={refreshing}
-                        onRefresh={onRefresh}
-                        tintColor={Colors.primary}
-                    />
+                    <RefreshControl refreshing={refreshing} onRefresh={onRefresh} tintColor={Colors.primary} />
                 }
-                contentContainerStyle={
-                    filteredChats.length === 0 ? [styles.emptyList, { flex: 1 }] : undefined
-                }
+                contentContainerStyle={filteredChats.length === 0 ? [styles.emptyList, { flex: 1 }] : undefined}
+                showsVerticalScrollIndicator={false}
             />
 
-            {/* FAB - New Chat */}
-            <TouchableOpacity
-                style={styles.fab}
-                onPress={() => navigation.navigate('NewChat')}
-                activeOpacity={0.8}>
-                <Icon name="add" size={30} color={Colors.white} />
-            </TouchableOpacity>
+            {/* Compose FAB */}
+            <Animated.View style={[styles.fabWrapper, { transform: [{ scale: fabScale }] }]}>
+                <TouchableOpacity
+                    style={styles.fab}
+                    onPress={() => navigation.navigate('NewChat')}
+                    activeOpacity={0.85}>
+                    <Icon name="create-outline" size={24} color={Colors.background} />
+                </TouchableOpacity>
+            </Animated.View>
         </View>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: Colors.background,
-    },
+    container: { flex: 1, backgroundColor: Colors.background },
+
+    // Header
     header: {
-        height: 56,
+        height: 58,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',
-        paddingHorizontal: 16,
-        backgroundColor: Colors.background,
-    },
-    headerLeft: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    headerTitle: {
-        fontSize: 20,
-        fontWeight: 'bold',
-        color: Colors.white,
-        marginLeft: 12,
-    },
-    headerRight: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    headerAction: {
-        padding: 8,
-    },
-    searchContainer: {
-        paddingHorizontal: 16,
-        paddingVertical: 8,
-    },
-    searchBar: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        backgroundColor: '#1C2733', // More accurate grey for search bar
-        borderRadius: 10, // Less rounded than before
-        paddingHorizontal: 12,
-        height: 44,
-    },
-    searchInput: {
-        flex: 1,
-        fontSize: 16,
-        color: Colors.textPrimary,
-        marginLeft: 8,
-        padding: 0,
-    },
-    filterWrapper: {
-        height: 48,
+        paddingHorizontal: 18,
         borderBottomWidth: 1,
         borderBottomColor: Colors.divider,
     },
-    filterContent: {
-        paddingHorizontal: 16,
+    headerLeft: { flexDirection: 'row', alignItems: 'center', gap: 10 },
+    logoMark: {
+        width: 30,
+        height: 30,
+        borderRadius: 9,
+        backgroundColor: Colors.primary,
+        justifyContent: 'center',
         alignItems: 'center',
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 0 },
+        shadowOpacity: 0.55,
+        shadowRadius: 8,
+        elevation: 6,
     },
+    logoInner: {
+        width: 12,
+        height: 12,
+        borderRadius: 3,
+        backgroundColor: Colors.background,
+        opacity: 0.6,
+    },
+    headerTitle: {
+        fontSize: 20,
+        fontWeight: '800',
+        color: Colors.textPrimary,
+        letterSpacing: -0.5,
+    },
+    headerRight: { flexDirection: 'row', alignItems: 'center' },
+    headerAction: {
+        width: 38,
+        height: 38,
+        borderRadius: BorderRadius.full,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginLeft: 2,
+    },
+
+    // Search
+    searchContainer: { paddingHorizontal: 16, paddingTop: 10, paddingBottom: 8 },
+    searchBar: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        backgroundColor: Colors.surfaceElevated,
+        borderRadius: BorderRadius.full,
+        height: 40,
+        borderWidth: 1.5,
+        borderColor: Colors.border,
+    },
+    searchBarFocused: { borderColor: Colors.primary },
+    searchInput: {
+        flex: 1,
+        fontSize: 15,
+        color: Colors.textPrimary,
+        marginLeft: 10,
+        padding: 0,
+    },
+
+    // Filter pills
+    filterWrapper: { paddingBottom: 8 },
+    filterContent: { paddingHorizontal: 16, gap: 8 },
     filterTab: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: 16,
+        paddingHorizontal: 14,
         height: 32,
-        borderRadius: 16,
-        marginRight: 8,
+        borderRadius: BorderRadius.full,
+        backgroundColor: Colors.surface,
+        borderWidth: 1,
+        borderColor: Colors.border,
     },
     filterTabActive: {
-        backgroundColor: Colors.primaryDark,
+        backgroundColor: Colors.primaryDim,
+        borderColor: Colors.primary,
     },
     filterText: {
-        fontSize: 15,
+        fontSize: 13,
         fontWeight: '600',
         color: Colors.textSecondary,
     },
-    filterTextActive: {
-        fontSize: 15,
-        fontWeight: '600',
-        color: Colors.primary,
-    },
+    filterTextActive: { color: Colors.primary },
     filterBadge: {
-        backgroundColor: Colors.surface,
+        backgroundColor: Colors.surfaceBright,
         borderRadius: 10,
         paddingHorizontal: 6,
-        height: 20,
+        height: 17,
         justifyContent: 'center',
         alignItems: 'center',
         marginLeft: 6,
     },
-    filterBadgeActive: {
-        backgroundColor: Colors.primary,
-        borderRadius: 10,
-        paddingHorizontal: 6,
-        height: 20,
-        justifyContent: 'center',
-        alignItems: 'center',
-        marginLeft: 6,
-    },
-    filterBadgeText: {
-        fontSize: 11,
-        color: Colors.textSecondary,
-        fontWeight: 'bold',
-    },
-    filterBadgeTextActive: {
-        fontSize: 11,
-        color: Colors.white,
-        fontWeight: 'bold',
-    },
-    emptyList: {
-        justifyContent: 'center',
-    },
+    filterBadgeActive: { backgroundColor: Colors.primary },
+    filterBadgeText: { fontSize: 11, color: Colors.textSecondary, fontWeight: '700' },
+    filterBadgeTextActive: { color: Colors.background },
+
+    // Empty state
+    emptyList: { justifyContent: 'center' },
     emptyContainer: {
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: Spacing.xxxl,
+        paddingHorizontal: 48,
+        paddingTop: 16,
+    },
+    emptyIconBg: {
+        width: 84,
+        height: 84,
+        borderRadius: BorderRadius.xxl,
+        backgroundColor: Colors.primaryDim,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginBottom: 20,
+        borderWidth: 1,
+        borderColor: 'rgba(0,200,150,0.2)',
     },
     emptyTitle: {
-        ...Typography.h3,
+        fontSize: 19,
+        fontWeight: '700',
         color: Colors.textPrimary,
-        marginTop: Spacing.lg,
-        marginBottom: Spacing.sm,
+        marginBottom: 8,
+        letterSpacing: -0.3,
     },
     emptySubtitle: {
-        ...Typography.body,
+        fontSize: 14,
         color: Colors.textSecondary,
         textAlign: 'center',
-        lineHeight: 22,
+        lineHeight: 21,
+    },
+
+    // FAB
+    fabWrapper: {
+        position: 'absolute',
+        bottom: 28,
+        right: 22,
     },
     fab: {
-        position: 'absolute',
-        bottom: 24,
-        right: 20,
         width: 56,
         height: 56,
-        borderRadius: 28,
+        borderRadius: BorderRadius.full,
         backgroundColor: Colors.primary,
         justifyContent: 'center',
         alignItems: 'center',
-        elevation: 6,
-        shadowColor: '#000',
-        shadowOffset: { width: 0, height: 3 },
-        shadowOpacity: 0.3,
-        shadowRadius: 4,
+        shadowColor: Colors.primary,
+        shadowOffset: { width: 0, height: 6 },
+        shadowOpacity: 0.5,
+        shadowRadius: 16,
+        elevation: 12,
     },
+
+    // Swipe delete
     deleteAction: {
-        backgroundColor: '#FF3B30',
+        backgroundColor: Colors.danger,
         justifyContent: 'center',
         alignItems: 'center',
-        width: 80,
+        width: 78,
         height: '100%',
     },
-    deleteText: {
-        color: 'white',
-        fontWeight: '600',
-        padding: 5,
-        fontSize: 12,
-    },
+    deleteText: { color: 'white', fontWeight: '600', fontSize: 11, marginTop: 4 },
 });
 
 export default ChatListScreen;

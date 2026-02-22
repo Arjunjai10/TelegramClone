@@ -56,7 +56,10 @@ const NewChatScreen: React.FC = () => {
         if (!user?.id) return;
         try {
             const chatId = await createChat(user.id, otherUser.id);
-            navigation.replace('Chat', { chatId, otherUser });
+            // Use navigate (not replace) — Chat is in the same ChatStack.
+            // Pop NewChat first so the back stack is: ChatList → Chat.
+            navigation.pop();
+            navigation.navigate('Chat', { chatId, otherUser });
         } catch (error) {
             console.error('Failed to create chat:', error);
         }

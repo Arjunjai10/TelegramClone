@@ -1,44 +1,40 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { View, Text, StyleSheet, Animated } from 'react-native';
 import { useNetInfo } from '@react-native-community/netinfo';
-import { Colors, Typography, Spacing } from '../../constants/theme';
+import Icon from 'react-native-vector-icons/Ionicons';
+import { Colors, Spacing } from '../../constants/theme';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 
 const NetworkBanner: React.FC = () => {
     const netInfo = useNetInfo();
     const insets = useSafeAreaInsets();
-    const [heightAnim] = useState(new Animated.Value(0));
+    const heightAnim = useRef(new Animated.Value(0)).current;
     const [isVisible, setIsVisible] = useState(false);
 
     useEffect(() => {
         if (netInfo.isConnected === false) {
             setIsVisible(true);
-            Animated.timing(heightAnim, {
-                toValue: 40 + insets.top,
-                duration: 300,
+            Animated.spring(heightAnim, {
+                toValue: 42 + insets.top,
+                friction: 10,
                 useNativeDriver: false,
             }).start();
         } else {
             Animated.timing(heightAnim, {
                 toValue: 0,
-                duration: 300,
+                duration: 280,
                 useNativeDriver: false,
             }).start(() => {
-                if (netInfo.isConnected !== false) {
-                    setIsVisible(false);
-                }
+                if (netInfo.isConnected !== false) setIsVisible(false);
             });
         }
-    }, [netInfo.isConnected, heightAnim, insets.top]);
+    }, [netInfo.isConnected, insets.top]);
 
     if (!isVisible && netInfo.isConnected !== false) return null;
 
     return (
-        <Animated.View
-            style={[
-                styles.container,
-                { height: heightAnim, paddingTop: insets.top },
-            ]}>
+        <Animated.View style={[styles.container, { height: heightAnim, paddingTop: insets.top }]}>
+            <Icon name="wifi-outline" size={14} color={Colors.white} style={{ marginRight: 6 }} />
             <Text style={styles.text}>No Internet Connection</Text>
         </Animated.View>
     );
@@ -53,14 +49,15 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.danger,
         justifyContent: 'center',
         alignItems: 'center',
+        flexDirection: 'row',
         zIndex: 9999,
         overflow: 'hidden',
     },
     text: {
-        ...Typography.caption,
+        fontSize: 13,
         color: Colors.white,
-        fontWeight: '600',
-        paddingBottom: Spacing.xs,
+        fontWeight: '700',
+        letterSpacing: 0.2,
     },
 });
 

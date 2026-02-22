@@ -1,51 +1,47 @@
 import React, { useEffect } from 'react';
-import { View, StyleSheet, Animated, Dimensions } from 'react-native';
-import Icon from 'react-native-vector-icons/Ionicons';
-import { Colors } from '../../constants/theme';
-import { useNavigation } from '@react-navigation/native';
+import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../constants/types';
+import { Colors } from '../../constants/theme';
+import BootSplash from 'react-native-bootsplash';
+import { useAuthStore } from '../../store';
 
-const { width } = Dimensions.get('window');
+type SplashScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Splash'>;
 
-const SplashScreen: React.FC = () => {
-    const navigation = useNavigation<StackNavigationProp<AuthStackParamList>>();
-    const fadeAnim = new Animated.Value(0);
-    const scaleAnim = new Animated.Value(0.8);
+interface Props {
+    navigation: SplashScreenNavigationProp;
+}
+
+const SplashScreen: React.FC<Props> = ({ navigation }) => {
+    const { user, isLoading } = useAuthStore();
 
     useEffect(() => {
-        Animated.parallel([
-            Animated.timing(fadeAnim, {
-                toValue: 1,
-                duration: 1000,
-                useNativeDriver: true,
-            }),
-            Animated.spring(scaleAnim, {
-                toValue: 1,
-                friction: 4,
-                useNativeDriver: true,
-            }),
-        ]).start();
+        const init = async () => {
+            // Hide the native bootsplash as soon as React Native has rendered this screen
+            await BootSplash.hide({ fade: true });
+        };
 
-        const timer = setTimeout(() => {
-            navigation.replace('Login');
-        }, 2000);
+        init();
+    }, []);
 
-        return () => clearTimeout(timer);
-    }, [fadeAnim, scaleAnim, navigation]);
+    useEffect(() => {
+        if (!isLoading) {
+            if (user) {
+                // If the user already has a session, they will be redirected to the main app by AppNavigator.
+                // But if they end up here, just a safety check. AppNavigator usually handles this.
+            } else {
+                // Wait a tiny bit and send to Login
+                const timer = setTimeout(() => {
+                    navigation.replace('Login');
+                }, 500);
+                return () => clearTimeout(timer);
+            }
+        }
+    }, [user, isLoading, navigation]);
 
     return (
         <View style={styles.container}>
-            <Animated.View
-                style={[
-                    styles.logoContainer,
-                    {
-                        opacity: fadeAnim,
-                        transform: [{ scale: scaleAnim }],
-                    },
-                ]}>
-                <Icon name="logo-telegram" size={width * 0.3} color={Colors.white} />
-            </Animated.View>
+            <ActivityIndicator size="large" color={Colors.primary} />
         </View>
     );
 };
@@ -53,11 +49,7 @@ const SplashScreen: React.FC = () => {
 const styles = StyleSheet.create({
     container: {
         flex: 1,
-        backgroundColor: Colors.primary,
-        justifyContent: 'center',
-        alignItems: 'center',
-    },
-    logoContainer: {
+        backgroundColor: Colors.background, // Match recent Obsidian theme change
         justifyContent: 'center',
         alignItems: 'center',
     },

@@ -5,6 +5,12 @@ import { Colors } from '../constants/theme';
 import SettingsScreen from '../screens/settings/SettingsScreen';
 import EditProfileScreen from '../screens/settings/EditProfileScreen';
 
+import NotificationsScreen from '../screens/settings/NotificationsScreen';
+import PrivacySecurityScreen from '../screens/settings/PrivacySecurityScreen';
+import ChatSettingsScreen from '../screens/settings/ChatSettingsScreen';
+import DataStorageScreen from '../screens/settings/DataStorageScreen';
+import LanguageScreen from '../screens/settings/LanguageScreen';
+
 const Stack = createStackNavigator<SettingsStackParamList>();
 
 const SettingsStack: React.FC = () => {
@@ -15,6 +21,11 @@ const SettingsStack: React.FC = () => {
             }}>
             <Stack.Screen name="Settings" component={SettingsScreen} />
             <Stack.Screen name="EditProfile" component={EditProfileScreen} />
+            <Stack.Screen name="Notifications" component={NotificationsScreen} />
+            <Stack.Screen name="PrivacySecurity" component={PrivacySecurityScreen} />
+            <Stack.Screen name="ChatSettings" component={ChatSettingsScreen} />
+            <Stack.Screen name="DataStorage" component={DataStorageScreen} />
+            <Stack.Screen name="Language" component={LanguageScreen} />
         </Stack.Navigator>
     );
 };

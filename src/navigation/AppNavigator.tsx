@@ -5,17 +5,49 @@ import { useAuthStore } from '../store';
 import { Colors } from '../constants/theme';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
+import { notificationService } from '../services/notificationService';
 
 const AppNavigator: React.FC = () => {
-    const { isAuthenticated, isProfileComplete, isLoading, initialize } =
+    const { isAuthenticated, isProfileComplete, isLoading, initialize, user } =
         useAuthStore();
 
 
 
     useEffect(() => {
-        const unsubscribe = initialize();
-        return () => unsubscribe();
+        let authUnsubscribe: (() => void) | undefined;
+        let tokenUnsubscribe: (() => void) | undefined;
+
+        const initializeApp = async () => {
+            authUnsubscribe = initialize();
+        };
+        initializeApp();
+
+        return () => {
+            if (authUnsubscribe) authUnsubscribe();
+            if (tokenUnsubscribe) tokenUnsubscribe();
+        };
     }, [initialize]);
+
+    // Handle notifications when authenticated
+    useEffect(() => {
+        let tokenUnsubscribe: (() => void) | undefined;
+
+        const setupNotifications = async () => {
+            if (isAuthenticated && isProfileComplete && user?.id) {
+                const hasPermission = await notificationService.requestPermission();
+                if (hasPermission) {
+                    await notificationService.setupChannels();
+                    tokenUnsubscribe = await notificationService.updateUserToken(user.id);
+                }
+            }
+        };
+
+        setupNotifications();
+
+        return () => {
+            if (tokenUnsubscribe) tokenUnsubscribe();
+        };
+    }, [isAuthenticated, isProfileComplete, user?.id]);
 
     if (isLoading) {
         return (

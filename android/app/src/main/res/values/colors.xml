@@ -1,6 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="splash_background">#0088CC</color>
-    <color name="primary">#0088CC</color>
-    <color name="header_bg">#517DA2</color>
+    <color name="splash_background">#09090F</color>
+    <color name="primary">#00C896</color>
+    <color name="header_bg">#131720</color>
+    <color name="bootsplash_background">#09090F</color>
 </resources>

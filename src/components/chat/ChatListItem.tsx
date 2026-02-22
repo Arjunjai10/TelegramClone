@@ -9,7 +9,7 @@ import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
 import Icon from 'react-native-vector-icons/Ionicons';
 import Avatar from '../common/Avatar';
 import { Chat } from '../../constants/types';
-import { Colors, Typography, Spacing } from '../../constants/theme';
+import { Colors, BorderRadius } from '../../constants/theme';
 
 interface ChatListItemProps {
     chat: Chat;
@@ -26,26 +26,24 @@ const formatTime = (timestamp: any): string => {
     return format(date, 'dd/MM/yy');
 };
 
-const ChatListItem: React.FC<ChatListItemProps> = ({
-    chat,
-    onPress,
-    onLongPress,
-}) => {
+const ChatListItem: React.FC<ChatListItemProps> = ({ chat, onPress, onLongPress }) => {
     const otherUser = chat.otherUser;
     const lastMsg = chat.lastMessage;
-    const isPinned = chat.participants.length > 5; // Placeholder logic for pinning
+    const isPinned = chat.participants.length > 5;
+    const hasUnread = chat.unreadCount > 0;
 
     return (
         <TouchableOpacity
             style={styles.container}
             onPress={onPress}
             onLongPress={onLongPress}
-            activeOpacity={0.6}>
+            activeOpacity={0.65}>
             <Avatar
                 uri={otherUser?.photoURL}
                 name={otherUser?.displayName || 'User'}
-                size={54}
+                size={52}
                 showOnline={otherUser?.online}
+                online={otherUser?.online}
             />
             <View style={styles.content}>
                 <View style={styles.topRow}>
@@ -54,26 +52,31 @@ const ChatListItem: React.FC<ChatListItemProps> = ({
                             {otherUser?.displayName || 'Unknown'}
                         </Text>
                         {otherUser?.id === 'bot' && (
-                            <Icon name="volume-mute" size={14} color={Colors.textSecondary} style={styles.mutedIcon} />
+                            <Icon name="volume-mute" size={13} color={Colors.textTertiary} style={styles.mutedIcon} />
                         )}
                     </View>
                     <View style={styles.timeContainer}>
                         {isPinned && (
-                            <Icon name="pin" size={14} color={Colors.pinned} style={styles.pinnedIcon} />
+                            <Icon
+                                name="pin"
+                                size={12}
+                                color={Colors.textTertiary}
+                                style={{ marginRight: 5, transform: [{ rotate: '45deg' }] }}
+                            />
                         )}
-                        <Text style={styles.time}>
+                        <Text style={[styles.time, hasUnread && styles.timeUnread]}>
                             {lastMsg?.timestamp ? formatTime(lastMsg.timestamp) : ''}
                         </Text>
                     </View>
                 </View>
                 <View style={styles.bottomRow}>
-                    <Text style={styles.lastMessage} numberOfLines={1}>
+                    <Text style={[styles.lastMessage, hasUnread && styles.lastMessageUnread]} numberOfLines={1}>
                         {lastMsg?.text || 'Start a conversation'}
                     </Text>
-                    {chat.unreadCount > 0 && (
+                    {hasUnread && (
                         <View style={[styles.unreadBadge, chat.unreadCount > 1000 && styles.unreadBadgeMuted]}>
                             <Text style={styles.unreadCount}>
-                                {chat.unreadCount > 999 ? chat.unreadCount : chat.unreadCount}
+                                {chat.unreadCount > 999 ? '999+' : chat.unreadCount}
                             </Text>
                         </View>
                     )}
@@ -87,20 +90,21 @@ const styles = StyleSheet.create({
     container: {
         flexDirection: 'row',
         alignItems: 'center',
-        paddingHorizontal: Spacing.lg,
-        paddingVertical: 12,
+        paddingHorizontal: 18,
+        paddingVertical: 11,
         backgroundColor: Colors.background,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.divider,
     },
     content: {
         flex: 1,
         marginLeft: 14,
-        paddingBottom: 4,
     },
     topRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        marginBottom: 2,
+        marginBottom: 4,
     },
     nameContainer: {
         flexDirection: 'row',
@@ -108,54 +112,52 @@ const styles = StyleSheet.create({
         flex: 1,
     },
     name: {
-        fontSize: 17,
-        fontWeight: '600',
+        fontSize: 16,
+        fontWeight: '700',
         color: Colors.textPrimary,
         marginRight: 4,
+        letterSpacing: -0.2,
     },
-    mutedIcon: {
-        marginLeft: 4,
-    },
-    timeContainer: {
-        flexDirection: 'row',
-        alignItems: 'center',
-    },
-    pinnedIcon: {
-        marginRight: 6,
-        transform: [{ rotate: '45deg' }],
-    },
+    mutedIcon: { marginLeft: 3 },
+    timeContainer: { flexDirection: 'row', alignItems: 'center' },
     time: {
-        fontSize: 13,
-        color: Colors.textSecondary,
+        fontSize: 12,
+        color: Colors.textTertiary,
+        fontWeight: '500',
     },
+    timeUnread: { color: Colors.gold, fontWeight: '600' },
     bottomRow: {
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
     },
     lastMessage: {
-        fontSize: 15,
+        fontSize: 14,
         color: Colors.textSecondary,
         flex: 1,
-        marginRight: Spacing.sm,
+        marginRight: 8,
+        fontWeight: '400',
+    },
+    lastMessageUnread: {
+        color: Colors.textPrimary,
+        fontWeight: '500',
     },
     unreadBadge: {
-        backgroundColor: Colors.badge,
-        borderRadius: 12,
-        minWidth: 24,
-        height: 24,
+        backgroundColor: Colors.gold,
+        borderRadius: BorderRadius.full,
+        minWidth: 22,
+        height: 22,
         justifyContent: 'center',
         alignItems: 'center',
-        paddingHorizontal: 8,
+        paddingHorizontal: 7,
+        shadowColor: Colors.gold,
+        shadowOffset: { width: 0, height: 2 },
+        shadowOpacity: 0.4,
+        shadowRadius: 6,
+        elevation: 4,
     },
-    unreadBadgeMuted: {
-        backgroundColor: Colors.badgeMuted,
-    },
-    unreadCount: {
-        color: Colors.white,
-        fontSize: 12,
-        fontWeight: 'bold',
-    },
+    unreadBadgeMuted: { backgroundColor: Colors.badgeMuted, shadowOpacity: 0 },
+    unreadCount: { color: Colors.background, fontSize: 11, fontWeight: '800' },
 });
 
 export default ChatListItem;

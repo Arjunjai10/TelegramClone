@@ -8,11 +8,12 @@ import {
     KeyboardAvoidingView,
     Platform,
     StatusBar,
+    Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { ChatStackParamList, Message } from '../../constants/types';
-import { Colors, Typography, Spacing } from '../../constants/theme';
+import { Colors, BorderRadius } from '../../constants/theme';
 import { useAuthStore, useChatStore } from '../../store';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { storageService } from '../../services/storageService';
@@ -33,50 +34,35 @@ const ChatScreen: React.FC = () => {
 
     useEffect(() => {
         const unsubscribeMessages = subscribeToMessages(chatId);
-
         const unsubscribeTyping = chatService.subscribeToTypingStatus(chatId, (userIds) => {
-            const othersTyping = userIds.includes(otherUser.id);
-            setIsTyping(othersTyping);
+            setIsTyping(userIds.includes(otherUser.id));
         });
-
-        return () => {
-            unsubscribeMessages();
-            unsubscribeTyping();
-        };
+        return () => { unsubscribeMessages(); unsubscribeTyping(); };
     }, [chatId, subscribeToMessages, otherUser.id]);
 
-    const handleSend = useCallback(
-        (text: string) => {
-            if (!user?.id) return;
-            sendMessage(chatId, text, user.id);
-            chatService.setTypingStatus(chatId, user.id, false);
-        },
-        [chatId, user?.id, sendMessage],
-    );
+    const handleSend = useCallback((text: string) => {
+        if (!user?.id) return;
+        sendMessage(chatId, text, user.id);
+        chatService.setTypingStatus(chatId, user.id, false);
+    }, [chatId, user?.id, sendMessage]);
 
-    const handleTyping = useCallback(
-        (typing: boolean) => {
-            if (!user?.id) return;
-            chatService.setTypingStatus(chatId, user.id, typing);
-        },
-        [chatId, user?.id],
-    );
+    const handleTyping = useCallback((typing: boolean) => {
+        if (!user?.id) return;
+        chatService.setTypingStatus(chatId, user.id, typing);
+    }, [chatId, user?.id]);
 
     const handleAttach = useCallback(async () => {
         try {
-            const result = await launchImageLibrary({
-                mediaType: 'photo',
-                quality: 0.7,
-                maxWidth: 1200,
-                maxHeight: 1200,
-            });
-
+            const result = await launchImageLibrary({ mediaType: 'photo', quality: 0.7, maxWidth: 1200, maxHeight: 1200 });
             if (result.assets && result.assets[0]?.uri && user?.id) {
-                const imageURL = await storageService.uploadChatImage(
-                    chatId,
-                    result.assets[0].uri,
-                );
-                sendMessage(chatId, '', user.id, 'image', imageURL);
+                const upload = await storageService.uploadChatImage(chatId, result.assets[0].uri);
+                if (upload.blocked) {
+                    Alert.alert('Feature Unavailable', 'Image uploads require Firebase Storage (Blaze plan).');
+                    return;
+                }
+                if (upload.url) {
+                    sendMessage(chatId, '', user.id, 'image', upload.url);
+                }
             }
         } catch (error) {
             console.error('Image upload error:', error);
@@ -84,31 +70,31 @@ const ChatScreen: React.FC = () => {
     }, [chatId, user?.id, sendMessage]);
 
     const renderMessage = ({ item }: { item: Message }) => (
-        <MessageBubble
-            message={item}
-            isMine={item.senderId === user?.id}
-        />
+        <MessageBubble message={item} isMine={item.senderId === user?.id} />
     );
+
+    const statusText = isTyping
+        ? 'typing...'
+        : otherUser.online
+            ? 'online'
+            : 'last seen recently';
 
     return (
         <KeyboardAvoidingView
             style={styles.container}
-            behavior={Platform.OS === 'ios' ? 'padding' : undefined}
-            keyboardVerticalOffset={Platform.OS === 'ios' ? 0 : 0}>
+            behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
+            <StatusBar barStyle="light-content" backgroundColor={Colors.surface} />
+
             {/* Header */}
             <View style={styles.header}>
-                <TouchableOpacity
-                    style={styles.backButton}
-                    onPress={() => navigation.goBack()}>
-                    <Icon name="arrow-back" size={24} color={Colors.white} />
+                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+                    <Icon name="chevron-back" size={26} color={Colors.textPrimary} />
                 </TouchableOpacity>
 
                 <TouchableOpacity
                     style={styles.headerInfo}
-                    onPress={() =>
-                        (navigation as any).navigate('ContactInfo', { userId: otherUser.id })
-                    }
-                    activeOpacity={0.7}>
+                    onPress={() => (navigation as any).navigate('ContactInfo', { userId: otherUser.id })}
+                    activeOpacity={0.75}>
                     <Avatar
                         uri={otherUser.photoURL}
                         name={otherUser.displayName}
@@ -120,86 +106,97 @@ const ChatScreen: React.FC = () => {
                         <Text style={styles.headerName} numberOfLines={1}>
                             {otherUser.displayName}
                         </Text>
-                        <Text style={styles.headerStatus}>
-                            {isTyping ? 'typing...' : otherUser.online ? 'online' : 'last seen recently'}
+                        <Text style={[
+                            styles.headerStatus,
+                            isTyping && styles.typingStatus,
+                        ]}>
+                            {statusText}
                         </Text>
                     </View>
                 </TouchableOpacity>
 
-                <TouchableOpacity style={styles.headerAction}>
-                    <Icon name="call-outline" size={22} color={Colors.white} />
-                </TouchableOpacity>
-                <TouchableOpacity style={styles.headerAction}>
-                    <Icon name="ellipsis-vertical" size={22} color={Colors.white} />
-                </TouchableOpacity>
+                <View style={styles.headerActions}>
+                    <TouchableOpacity style={styles.headerAction}>
+                        <Icon name="call-outline" size={20} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                    <TouchableOpacity style={styles.headerAction}>
+                        <Icon name="ellipsis-vertical" size={20} color={Colors.textSecondary} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             {/* Messages */}
-            <View style={styles.messagesContainer}>
-                <FlatList
-                    data={activeMessages}
-                    keyExtractor={(item) => item.id}
-                    renderItem={renderMessage}
-                    inverted
-                    contentContainerStyle={styles.messagesList}
-                    showsVerticalScrollIndicator={false}
-                />
-            </View>
+            <FlatList
+                data={activeMessages}
+                keyExtractor={(item) => item.id}
+                renderItem={renderMessage}
+                inverted
+                contentContainerStyle={styles.messagesList}
+                showsVerticalScrollIndicator={false}
+                style={styles.messageList}
+            />
 
             {/* Input */}
-            <MessageInput
-                onSend={handleSend}
-                onAttachPress={handleAttach}
-                onTyping={handleTyping}
-            />
+            <MessageInput onSend={handleSend} onAttachPress={handleAttach} onTyping={handleTyping} />
         </KeyboardAvoidingView>
     );
 };
 
 const styles = StyleSheet.create({
-    container: {
-        flex: 1,
-        backgroundColor: '#E8F0F7',
-    },
+    container: { flex: 1, backgroundColor: Colors.background },
+
+    // Header
     header: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: Colors.headerBg,
+        backgroundColor: Colors.surface,
         paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
-        paddingBottom: 10,
-        paddingHorizontal: Spacing.sm,
+        paddingBottom: 12,
+        paddingHorizontal: 6,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.divider,
     },
     backButton: {
-        padding: Spacing.sm,
+        width: 42,
+        height: 42,
+        borderRadius: BorderRadius.full,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
     headerInfo: {
         flex: 1,
         flexDirection: 'row',
         alignItems: 'center',
-        marginLeft: Spacing.xs,
+        marginLeft: 4,
     },
-    headerText: {
-        marginLeft: Spacing.sm,
-        flex: 1,
-    },
+    headerText: { marginLeft: 10, flex: 1 },
     headerName: {
-        ...Typography.bodyBold,
-        color: Colors.white,
-        fontSize: 17,
+        fontSize: 16,
+        fontWeight: '700',
+        color: Colors.textPrimary,
+        letterSpacing: -0.2,
     },
     headerStatus: {
-        ...Typography.small,
-        color: 'rgba(255,255,255,0.7)',
+        fontSize: 12,
+        color: Colors.textSecondary,
         marginTop: 1,
+        fontWeight: '500',
     },
+    typingStatus: { color: Colors.primary, fontWeight: '600' },
+    headerActions: { flexDirection: 'row', alignItems: 'center' },
     headerAction: {
-        padding: Spacing.sm,
+        width: 40,
+        height: 40,
+        borderRadius: BorderRadius.full,
+        justifyContent: 'center',
+        alignItems: 'center',
     },
-    messagesContainer: {
-        flex: 1,
-    },
+
+    // Messages
+    messageList: { flex: 1 },
     messagesList: {
-        paddingVertical: Spacing.sm,
+        paddingVertical: 12,
+        paddingHorizontal: 6,
     },
 });
 

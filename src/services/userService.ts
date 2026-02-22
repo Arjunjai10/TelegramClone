@@ -1,134 +1,227 @@
-import firestore from '@react-native-firebase/firestore';
+import {
+    getFirestore,
+    collection,
+    doc,
+    setDoc,
+    getDoc,
+    query,
+    where,
+    limit,
+    getDocs,
+    updateDoc,
+    onSnapshot,
+    serverTimestamp,
+    FirebaseFirestoreTypes,
+} from '@react-native-firebase/firestore';
 import { User } from '../constants/types';
+import { COLLECTIONS } from './collections';
+
+/**
+ * Firestore document shape:
+ *
+ * /users/{userId}
+ * {
+ *   displayName: string
+ *   email?: string
+ *   phoneNumber: string
+ *   photoURL: string
+ *   bio: string
+ *   isBot: boolean
+ *   online: boolean
+ *   lastSeen: Timestamp | null
+ *   createdAt: Timestamp | null
+ *   updatedAt: Timestamp
+ * }
+ */
+
+/** Interim raw type from Firestore — prevents unsafe `as User` casting */
+interface FirestoreUser {
+    displayName?: string;
+    email?: string;
+    phoneNumber?: string;
+    photoURL?: string;
+    bio?: string;
+    isBot?: boolean;
+    online?: boolean;
+    lastSeen?: FirebaseFirestoreTypes.Timestamp | null;
+    createdAt?: FirebaseFirestoreTypes.Timestamp | null;
+}
+
+/**
+ * Trust boundary: validates and maps a raw Firestore doc to a typed User.
+ * All missing fields get safe defaults so callers never receive undefined.
+ */
+const mapUser = (id: string, data: FirestoreUser): User => ({
+    id,
+    displayName: data.displayName ?? '',
+    email: data.email,
+    phoneNumber: data.phoneNumber ?? '',
+    photoURL: data.photoURL ?? '',
+    bio: data.bio ?? '',
+    isBot: data.isBot ?? false,
+    online: data.online ?? false,
+    lastSeen: data.lastSeen ?? null,
+    createdAt: data.createdAt ?? null,
+});
 
 class UserService {
-    private collection = firestore().collection('users');
+    private db = getFirestore();
+    private usersCollection = collection(this.db, COLLECTIONS.USERS);
 
     /**
-     * Create or update user profile
+     * Create or merge-update a user profile.
      */
     async setUser(userId: string, data: Partial<User>): Promise<void> {
-        await this.collection.doc(userId).set(
-            {
-                ...data,
-                updatedAt: firestore.FieldValue.serverTimestamp(),
-            },
-            { merge: true },
-        );
+        try {
+            await setDoc(
+                doc(this.usersCollection, userId),
+                { ...data, updatedAt: serverTimestamp() },
+                { merge: true },
+            );
+        } catch (error) {
+            console.error('[userService.setUser]', error);
+            throw new Error('Failed to save user profile');
+        }
     }
 
     /**
-     * Get user by ID
+     * Get a single user by ID. Returns null if not found.
      */
     async getUser(userId: string): Promise<User | null> {
-        const doc = await this.collection.doc(userId).get();
-        if (!doc.exists) return null;
-        return { id: doc.id, ...doc.data() } as User;
+        try {
+            const userDoc = await getDoc(doc(this.usersCollection, userId));
+            if (!userDoc.exists()) return null;
+            return mapUser(userDoc.id, userDoc.data() as FirestoreUser);
+        } catch (error) {
+            console.error('[userService.getUser]', error);
+            throw new Error('Failed to fetch user');
+        }
     }
 
     /**
-     * Search users by phone number
+     * Search users by exact phone number match.
      */
     async searchByPhone(phoneNumber: string): Promise<User[]> {
-        const snapshot = await this.collection
-            .where('phoneNumber', '==', phoneNumber)
-            .get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        try {
+            const q = query(this.usersCollection, where('phoneNumber', '==', phoneNumber));
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => mapUser(d.id, d.data() as FirestoreUser));
+        } catch (error) {
+            console.error('[userService.searchByPhone]', error);
+            throw new Error('Failed to search by phone');
+        }
     }
 
     /**
-     * Search users by display name (prefix search)
+     * Prefix search by display name (case-sensitive, requires Firestore range index).
      */
     async searchByName(name: string): Promise<User[]> {
-        const snapshot = await this.collection
-            .where('displayName', '>=', name)
-            .where('displayName', '<=', name + '\uf8ff')
-            .limit(20)
-            .get();
-        return snapshot.docs.map(doc => ({ id: doc.id, ...doc.data() } as User));
+        try {
+            const q = query(
+                this.usersCollection,
+                where('displayName', '>=', name),
+                where('displayName', '<=', name + '\uf8ff'),
+                limit(20),
+            );
+            const snapshot = await getDocs(q);
+            return snapshot.docs.map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => mapUser(d.id, d.data() as FirestoreUser));
+        } catch (error) {
+            console.error('[userService.searchByName]', error);
+            throw new Error('Failed to search by name');
+        }
     }
 
     /**
-     * Get users by phone numbers (for contact syncing)
+     * Fetch users whose phone numbers match any in the given list.
+     * Handles E.164, no-plus, and last-10-digit formats for maximum match coverage.
+     * Chunks queries to respect Firestore's 10-item `in` query limit.
      */
     async getUsersByPhoneNumbers(phoneNumbers: string[]): Promise<User[]> {
         if (phoneNumbers.length === 0) return [];
 
-        // Normalize input numbers to E.164 format and other potential formats
+        // Normalize to multiple formats to maximise match coverage
         const formatsToCheck = new Set<string>();
-        phoneNumbers.forEach(num => {
+        phoneNumbers.forEach((num) => {
             const clean = num.replace(/[^\d+]/g, '');
-            if (clean) {
-                formatsToCheck.add(clean);
-                // Also add without + if it exists
-                if (clean.startsWith('+')) {
-                    formatsToCheck.add(clean.substring(1));
-                }
-                // Also add last 10 digits (local format)
-                if (clean.length > 10) {
-                    formatsToCheck.add(clean.slice(-10));
-                }
-            }
+            if (!clean) return;
+            formatsToCheck.add(clean);
+            if (clean.startsWith('+')) formatsToCheck.add(clean.substring(1));
+            if (clean.length > 10) formatsToCheck.add(clean.slice(-10));
         });
 
-
         const allNumbers = Array.from(formatsToCheck);
-
-        // Firestore 'in' query limit is 10
         const chunkSize = 10;
-        const chunks = [];
-        for (let i = 0; i < allNumbers.length; i += chunkSize) {
-            chunks.push(allNumbers.slice(i, i + chunkSize));
-        }
-
         const usersMap = new Map<string, User>();
-        for (const chunk of chunks) {
-            try {
-                const snapshot = await this.collection
-                    .where('phoneNumber', 'in', chunk)
-                    .get();
 
-                snapshot.docs.forEach(doc => {
-                    usersMap.set(doc.id, { id: doc.id, ...doc.data() } as User);
+        for (let i = 0; i < allNumbers.length; i += chunkSize) {
+            const chunk = allNumbers.slice(i, i + chunkSize);
+            try {
+                const q = query(this.usersCollection, where('phoneNumber', 'in', chunk));
+                const snapshot = await getDocs(q);
+                snapshot.docs.forEach((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
+                    usersMap.set(d.id, mapUser(d.id, d.data() as FirestoreUser));
                 });
             } catch (err) {
-                console.error('UserService: Error fetching chunk', err);
+                console.error('[userService.getUsersByPhoneNumbers] chunk error', err);
             }
         }
+
         return Array.from(usersMap.values());
     }
 
     /**
-     * Get all users (fallback/admin only)
+     * Get up to 50 users, excluding the given user ID.
+     * Used as a fallback when contact sync yields no results.
      */
     async getAllUsers(excludeUserId: string): Promise<User[]> {
-        const snapshot = await this.collection.limit(50).get();
-        return snapshot.docs
-            .map(doc => ({ id: doc.id, ...doc.data() } as User))
-            .filter(user => user.id !== excludeUserId);
+        try {
+            const q = query(this.usersCollection, limit(50));
+            const snapshot = await getDocs(q);
+            return snapshot.docs
+                .map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => mapUser(d.id, d.data() as FirestoreUser))
+                .filter((u: User) => u.id !== excludeUserId);
+        } catch (error) {
+            console.error('[userService.getAllUsers]', error);
+            throw new Error('Failed to load users');
+        }
     }
 
     /**
-     * Update online status
+     * Set a user's online/offline status and update lastSeen timestamp.
+     * Uses setDoc with merge so it works even if the user doc doesn't exist yet.
      */
     async setOnlineStatus(userId: string, online: boolean): Promise<void> {
-        await this.collection.doc(userId).update({
-            online,
-            lastSeen: firestore.FieldValue.serverTimestamp(),
-        });
+        try {
+            await setDoc(
+                doc(this.usersCollection, userId),
+                { online, lastSeen: serverTimestamp() },
+                { merge: true },
+            );
+        } catch (error) {
+            console.error('[userService.setOnlineStatus]', error);
+            // Non-critical; don't rethrow
+        }
     }
 
     /**
-     * Listen to user changes
+     * Subscribe to real-time changes for a user document.
+     * Returns an unsubscribe function — call it in useEffect cleanup.
      */
     onUserChanged(userId: string, callback: (user: User | null) => void): () => void {
-        return this.collection.doc(userId).onSnapshot(doc => {
-            if (!doc.exists) {
+        return onSnapshot(
+            doc(this.usersCollection, userId),
+            (userDoc) => {
+                if (!userDoc.exists()) {
+                    callback(null);
+                    return;
+                }
+                callback(mapUser(userDoc.id, userDoc.data() as FirestoreUser));
+            },
+            (error) => {
+                console.error('[userService.onUserChanged]', error);
                 callback(null);
-                return;
-            }
-            callback({ id: doc.id, ...doc.data() } as User);
-        });
+            },
+        );
     }
 }
 

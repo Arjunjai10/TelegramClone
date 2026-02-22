@@ -3,9 +3,11 @@ import { FirebaseFirestoreTypes } from '@react-native-firebase/firestore';
 export interface User {
     id: string;
     displayName: string;
+    email?: string;
     phoneNumber: string;
     photoURL: string;
     bio: string;
+    isBot: boolean;
     online: boolean;
     lastSeen: FirebaseFirestoreTypes.Timestamp | null;
     createdAt: FirebaseFirestoreTypes.Timestamp | null;
@@ -68,7 +70,28 @@ export type ChatStackParamList = {
     ContactInfo: { userId: string };
 };
 
+export type ContactsStackParamList = {
+    Contacts: undefined;
+    NewChat: undefined;
+};
+
 export type SettingsStackParamList = {
     Settings: undefined;
     EditProfile: undefined;
+    Notifications: undefined;
+    PrivacySecurity: undefined;
+    ChatSettings: undefined;
+    DataStorage: undefined;
+    Language: undefined;
+};
+
+export type ProfileStackParamList = {
+    Profile: undefined;
+    EditProfile: undefined;
+    Settings: undefined;
+    Notifications: undefined;
+    PrivacySecurity: undefined;
+    ChatSettings: undefined;
+    DataStorage: undefined;
+    Language: undefined;
 };

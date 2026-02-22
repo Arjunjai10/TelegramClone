@@ -59,7 +59,12 @@ const ProfileSetupScreen: React.FC = () => {
         try {
             let photoURL = '';
             if (avatarUri) {
-                photoURL = await storageService.uploadAvatar(firebaseUser.uid, avatarUri);
+                const upload = await storageService.uploadAvatar(firebaseUser.uid, avatarUri);
+                if (upload.blocked) {
+                    Alert.alert('Feature Unavailable', 'Image uploads require Firebase Storage (Blaze plan). Your profile will be saved without a photo.');
+                } else {
+                    photoURL = upload.url;
+                }
             }
 
             const displayName = `${firstName.trim()} ${lastName.trim()}`.trim();

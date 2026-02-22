@@ -58,15 +58,15 @@ const EditProfileScreen: React.FC = () => {
         try {
             let photoURL = user.photoURL;
             if (newAvatarLocal) {
-                photoURL = await storageService.uploadAvatar(user.id, newAvatarLocal);
+                const upload = await storageService.uploadAvatar(user.id, newAvatarLocal);
+                if (upload.blocked) {
+                    Alert.alert('Feature Unavailable', 'Image uploads require Firebase Storage (Blaze plan). Text messaging works perfectly!');
+                } else if (upload.url) {
+                    photoURL = upload.url;
+                }
             }
 
-            const updatedData = {
-                displayName: displayName.trim(),
-                bio: bio.trim(),
-                photoURL,
-            };
-
+            const updatedData = { displayName: displayName.trim(), bio: bio.trim(), photoURL };
             await userService.setUser(user.id, updatedData);
             setUser({ ...user, ...updatedData });
             navigation.goBack();
@@ -204,7 +204,7 @@ const styles = StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 2.5,
-        borderColor: Colors.white,
+        borderColor: Colors.background,
     },
     form: {},
     inputGroup: {
