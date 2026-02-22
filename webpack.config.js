@@ -86,6 +86,7 @@ module.exports = {
             'react-native-bootsplash': path.resolve(__dirname, 'src/web-mocks/bootsplash.ts'),
             'react-native-contacts': path.resolve(__dirname, 'src/web-mocks/contacts.ts'),
             'react-native-image-picker': path.resolve(__dirname, 'src/web-mocks/image-picker.ts'),
+            'react-native-reanimated': path.resolve(__dirname, 'src/web-mocks/reanimated.ts'),
             // Add other mock aliases as needed
         },
         extensions: ['.web.js', '.js', '.web.ts', '.ts', '.web.tsx', '.tsx', '.json'],

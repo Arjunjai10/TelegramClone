@@ -99,13 +99,37 @@ class UserService {
     }
 
     /**
+     * Remove duplicate users (common when testing different auth methods).
+     * Deduplicates by phone number first, then falls back to displayName + photoURL.
+     * Retains the most recently active profile.
+     */
+    private deduplicateUsers(users: User[]): User[] {
+        const unique = new Map<string, User>();
+        for (const u of users) {
+             const key = u.phoneNumber ? u.phoneNumber : `${u.displayName}-${u.photoURL}`;
+             if (!unique.has(key)) {
+                 unique.set(key, u);
+             } else {
+                 const existing = unique.get(key)!;
+                 const existingTime = existing.lastSeen?.toMillis() || 0;
+                 const newTime = u.lastSeen?.toMillis() || 0;
+                 if (newTime > existingTime) {
+                     unique.set(key, u);
+                 }
+             }
+        }
+        return Array.from(unique.values());
+    }
+
+    /**
      * Search users by exact phone number match.
      */
     async searchByPhone(phoneNumber: string): Promise<User[]> {
         try {
             const q = query(this.usersCollection, where('phoneNumber', '==', phoneNumber));
             const snapshot = await getDocs(q);
-            return snapshot.docs.map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => mapUser(d.id, d.data() as FirestoreUser));
+            const users = snapshot.docs.map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => mapUser(d.id, d.data() as FirestoreUser));
+            return this.deduplicateUsers(users);
         } catch (error) {
             console.error('[userService.searchByPhone]', error);
             throw new Error('Failed to search by phone');
@@ -124,7 +148,8 @@ class UserService {
                 limit(20),
             );
             const snapshot = await getDocs(q);
-            return snapshot.docs.map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => mapUser(d.id, d.data() as FirestoreUser));
+            const users = snapshot.docs.map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => mapUser(d.id, d.data() as FirestoreUser));
+            return this.deduplicateUsers(users);
         } catch (error) {
             console.error('[userService.searchByName]', error);
             throw new Error('Failed to search by name');
@@ -151,7 +176,7 @@ class UserService {
 
         const allNumbers = Array.from(formatsToCheck);
         const chunkSize = 10;
-        const usersMap = new Map<string, User>();
+        const usersArray: User[] = [];
 
         for (let i = 0; i < allNumbers.length; i += chunkSize) {
             const chunk = allNumbers.slice(i, i + chunkSize);
@@ -159,14 +184,14 @@ class UserService {
                 const q = query(this.usersCollection, where('phoneNumber', 'in', chunk));
                 const snapshot = await getDocs(q);
                 snapshot.docs.forEach((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
-                    usersMap.set(d.id, mapUser(d.id, d.data() as FirestoreUser));
+                    usersArray.push(mapUser(d.id, d.data() as FirestoreUser));
                 });
             } catch (err) {
                 console.error('[userService.getUsersByPhoneNumbers] chunk error', err);
             }
         }
 
-        return Array.from(usersMap.values());
+        return this.deduplicateUsers(usersArray);
     }
 
     /**
@@ -177,9 +202,10 @@ class UserService {
         try {
             const q = query(this.usersCollection, limit(50));
             const snapshot = await getDocs(q);
-            return snapshot.docs
+            const users = snapshot.docs
                 .map((d: FirebaseFirestoreTypes.QueryDocumentSnapshot) => mapUser(d.id, d.data() as FirestoreUser))
                 .filter((u: User) => u.id !== excludeUserId);
+            return this.deduplicateUsers(users);
         } catch (error) {
             console.error('[userService.getAllUsers]', error);
             throw new Error('Failed to load users');
