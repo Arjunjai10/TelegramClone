@@ -6,6 +6,7 @@ import { Colors } from '../constants/theme';
 import AuthStack from './AuthStack';
 import MainTabs from './MainTabs';
 import { notificationService } from '../services/notificationService';
+import BootSplash from 'react-native-bootsplash';
 
 const AppNavigator: React.FC = () => {
     const { isAuthenticated, isProfileComplete, isLoading, initialize, user } =
@@ -58,7 +59,7 @@ const AppNavigator: React.FC = () => {
     }
 
     return (
-        <NavigationContainer>
+        <NavigationContainer onReady={() => BootSplash.hide({ fade: true })}>
             {isAuthenticated && isProfileComplete ? <MainTabs /> : <AuthStack />}
         </NavigationContainer>
     );

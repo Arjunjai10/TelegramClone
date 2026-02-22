@@ -3,7 +3,6 @@ import { View, StyleSheet, ActivityIndicator } from 'react-native';
 import { StackNavigationProp } from '@react-navigation/stack';
 import { AuthStackParamList } from '../../constants/types';
 import { Colors } from '../../constants/theme';
-import BootSplash from 'react-native-bootsplash';
 import { useAuthStore } from '../../store';
 
 type SplashScreenNavigationProp = StackNavigationProp<AuthStackParamList, 'Splash'>;
@@ -16,12 +15,8 @@ const SplashScreen: React.FC<Props> = ({ navigation }) => {
     const { user, isLoading } = useAuthStore();
 
     useEffect(() => {
-        const init = async () => {
-            // Hide the native bootsplash as soon as React Native has rendered this screen
-            await BootSplash.hide({ fade: true });
-        };
-
-        init();
+        // Initialization logic if any will go here.
+        // BootSplash.hide() has been moved to AppNavigator to handle both AuthStack and MainTabs reliably.
     }, []);
 
     useEffect(() => {
