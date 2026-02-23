@@ -28,6 +28,8 @@ interface ChatSettingsState {
     enterIsSend: boolean;
     saveToGallery: boolean;
     wallpaper?: string;
+    pinnedChats: string[];
+    mutedChats: string[];
 }
 
 interface DataStorageState {
@@ -46,6 +48,8 @@ interface SettingsStore {
     updateNotifications: (updates: Partial<NotificationsState>) => void;
     updatePrivacy: (updates: Partial<PrivacyState>) => void;
     updateChat: (updates: Partial<ChatSettingsState>) => void;
+    togglePinChat: (chatId: string) => void;
+    toggleMuteChat: (chatId: string) => void;
     updateStorage: (updates: Partial<DataStorageState>) => void;
     setLanguage: (lang: string) => void;
     resetSettings: () => void;
@@ -74,6 +78,8 @@ const defaultState = {
         enterIsSend: false,
         saveToGallery: true,
         wallpaper: undefined,
+        pinnedChats: [],
+        mutedChats: [],
     },
     storage: {
         cellular: true,
@@ -136,6 +142,22 @@ export const useSettingsStore = create<SettingsStore>()(
             updateChat: (updates) => set((state) => ({
                 chat: { ...state.chat, ...updates }
             })),
+
+            togglePinChat: (chatId) => set((state) => {
+                const isPinned = state.chat.pinnedChats.includes(chatId);
+                const pinnedChats = isPinned
+                    ? state.chat.pinnedChats.filter(id => id !== chatId)
+                    : [...state.chat.pinnedChats, chatId];
+                return { chat: { ...state.chat, pinnedChats } };
+            }),
+
+            toggleMuteChat: (chatId) => set((state) => {
+                const isMuted = state.chat.mutedChats.includes(chatId);
+                const mutedChats = isMuted
+                    ? state.chat.mutedChats.filter(id => id !== chatId)
+                    : [...state.chat.mutedChats, chatId];
+                return { chat: { ...state.chat, mutedChats } };
+            }),
 
             updateStorage: (updates) => set((state) => ({
                 storage: { ...state.storage, ...updates }

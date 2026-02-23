@@ -13,6 +13,8 @@ import { Colors, BorderRadius } from '../../constants/theme';
 
 interface ChatListItemProps {
     chat: Chat;
+    isPinned?: boolean;
+    isMuted?: boolean;
     onPress: () => void;
     onLongPress?: () => void;
 }
@@ -26,10 +28,11 @@ const formatTime = (timestamp: any): string => {
     return format(date, 'dd/MM/yy');
 };
 
-const ChatListItem: React.FC<ChatListItemProps> = ({ chat, onPress, onLongPress }) => {
+const ChatListItem: React.FC<ChatListItemProps> = ({ chat, isPinned, isMuted, onPress, onLongPress }) => {
     const otherUser = chat.otherUser;
     const lastMsg = chat.lastMessage;
-    const isPinned = chat.participants.length > 5;
+    // Fallback if not explicitly passed
+    const _isPinned = isPinned ?? false;
     const hasUnread = chat.unreadCount > 0;
 
     return (
@@ -51,12 +54,12 @@ const ChatListItem: React.FC<ChatListItemProps> = ({ chat, onPress, onLongPress 
                         <Text style={styles.name} numberOfLines={1}>
                             {otherUser?.displayName || 'Unknown'}
                         </Text>
-                        {otherUser?.id === 'bot' && (
+                        {(otherUser?.id === 'bot' || isMuted) && (
                             <Icon name="volume-mute" size={13} color={Colors.textTertiary} style={styles.mutedIcon} />
                         )}
                     </View>
                     <View style={styles.timeContainer}>
-                        {isPinned && (
+                        {_isPinned && (
                             <Icon
                                 name="pin"
                                 size={12}

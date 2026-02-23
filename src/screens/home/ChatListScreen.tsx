@@ -10,6 +10,7 @@ import {
     ScrollView,
     StatusBar,
     Animated,
+    Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
@@ -17,8 +18,8 @@ import Icon from 'react-native-vector-icons/Ionicons';
 import { Swipeable } from 'react-native-gesture-handler';
 import { Alert } from 'react-native';
 import { ChatStackParamList, Chat } from '../../constants/types';
-import { Colors, BorderRadius } from '../../constants/theme';
-import { useAuthStore, useChatStore } from '../../store';
+import { Colors, BorderRadius, Typography, Spacing } from '../../constants/theme';
+import { useAuthStore, useChatStore, useSettingsStore } from '../../store';
 import ChatListItem from '../../components/chat/ChatListItem';
 
 type NavProp = StackNavigationProp<ChatStackParamList, 'ChatList'>;
@@ -28,10 +29,17 @@ const ChatListScreen: React.FC = () => {
     const navigation = useNavigation<NavProp>();
     const { user } = useAuthStore();
     const { chats, isLoadingChats, subscribeToChats } = useChatStore();
+    const { chat: chatSettings, togglePinChat, toggleMuteChat } = useSettingsStore();
+
     const [searchQuery, setSearchQuery] = useState('');
     const [refreshing, setRefreshing] = useState(false);
     const [filterType, setFilterType] = useState<FilterKey>('All');
     const [searchFocused, setSearchFocused] = useState(false);
+
+    // UI State
+    const searchInputRef = useRef<TextInput>(null);
+    const [actionSheetVisible, setActionSheetVisible] = useState(false);
+    const [chatContextMenu, setChatContextMenu] = useState<{ visible: boolean; chat: Chat | null }>({ visible: false, chat: null });
 
     const fabScale = useRef(new Animated.Value(1)).current;
 
@@ -52,15 +60,25 @@ const ChatListScreen: React.FC = () => {
         return () => unsubscribe();
     }, [user?.id, subscribeToChats]);
 
-    const filteredChats = chats.filter((chat) => {
-        const matchesSearch = !searchQuery.trim() ||
-            chat.otherUser?.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
-        if (!matchesSearch) return false;
-        if (filterType === 'Unread') return chat.unreadCount > 0;
-        if (filterType === 'Groups') return chat.participants.length > 2;
-        if (filterType === 'Bots') return chat.otherUser?.isBot || false;
-        return true;
-    });
+    const filteredChats = chats
+        .filter((chat) => {
+            const matchesSearch = !searchQuery.trim() ||
+                chat.otherUser?.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
+            if (!matchesSearch) return false;
+            if (filterType === 'Unread') return chat.unreadCount > 0;
+            if (filterType === 'Groups') return chat.participants.length > 2;
+            if (filterType === 'Bots') return chat.otherUser?.isBot || false;
+            return true;
+        })
+        .sort((a, b) => {
+            // Sort pinned chats to the top
+            const aPinned = chatSettings.pinnedChats.includes(a.id);
+            const bPinned = chatSettings.pinnedChats.includes(b.id);
+            if (aPinned && !bPinned) return -1;
+            if (!aPinned && bPinned) return 1;
+            // Otherwise maintain default chronological backend sort (or handle timestamp if needed)
+            return 0;
+        });
 
     const unreadCount = chats.filter((c) => c.unreadCount > 0).length;
 
@@ -77,6 +95,7 @@ const ChatListScreen: React.FC = () => {
     };
 
     const handleDeleteChat = (chat: Chat) => {
+        setChatContextMenu({ visible: false, chat: null });
         Alert.alert('Delete Chat', 'This will permanently remove the conversation.', [
             { text: 'Cancel', style: 'cancel' },
             {
@@ -87,6 +106,16 @@ const ChatListScreen: React.FC = () => {
                 },
             },
         ]);
+    };
+
+    const handlePinMuteToggle = (action: 'pin' | 'mute') => {
+        const targetChatId = chatContextMenu.chat?.id;
+        if (!targetChatId) return;
+
+        if (action === 'pin') togglePinChat(targetChatId);
+        if (action === 'mute') toggleMuteChat(targetChatId);
+
+        setChatContextMenu({ visible: false, chat: null });
     };
 
     const renderRightActions = (
@@ -105,11 +134,22 @@ const ChatListScreen: React.FC = () => {
         );
     };
 
-    const renderItem = ({ item }: { item: Chat }) => (
-        <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item)}>
-            <ChatListItem chat={item} onPress={() => handleChatPress(item)} />
-        </Swipeable>
-    );
+    const renderItem = ({ item }: { item: Chat }) => {
+        const isPinned = chatSettings.pinnedChats.includes(item.id);
+        const isMuted = chatSettings.mutedChats.includes(item.id);
+
+        return (
+            <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item)}>
+                <ChatListItem
+                    chat={item}
+                    isPinned={isPinned}
+                    isMuted={isMuted}
+                    onPress={() => handleChatPress(item)}
+                    onLongPress={() => setChatContextMenu({ visible: true, chat: item })}
+                />
+            </Swipeable>
+        );
+    };
 
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>
@@ -141,10 +181,10 @@ const ChatListScreen: React.FC = () => {
                     <Text style={styles.headerTitle}>Messages</Text>
                 </View>
                 <View style={styles.headerRight}>
-                    <TouchableOpacity style={styles.headerAction}>
+                    <TouchableOpacity style={styles.headerAction} onPress={() => searchInputRef.current?.focus()}>
                         <Icon name="search" size={21} color={Colors.textSecondary} />
                     </TouchableOpacity>
-                    <TouchableOpacity style={styles.headerAction}>
+                    <TouchableOpacity style={styles.headerAction} onPress={() => setActionSheetVisible(true)}>
                         <Icon name="ellipsis-horizontal" size={21} color={Colors.textSecondary} />
                     </TouchableOpacity>
                 </View>
@@ -160,6 +200,7 @@ const ChatListScreen: React.FC = () => {
                         style={{ marginLeft: 14 }}
                     />
                     <TextInput
+                        ref={searchInputRef}
                         style={styles.searchInput}
                         placeholder="Search"
                         placeholderTextColor={Colors.textTertiary}
@@ -226,6 +267,72 @@ const ChatListScreen: React.FC = () => {
                     <Icon name="create-outline" size={24} color={Colors.background} />
                 </TouchableOpacity>
             </Animated.View>
+
+            {/* Global Header Action Sheet */}
+            {actionSheetVisible && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setActionSheetVisible(false)} />
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHandle} />
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Group creation in development'); }}>
+                            <View style={styles.sheetActionIconContainer}><Icon name="people-outline" size={22} color={Colors.textPrimary} /></View>
+                            <Text style={styles.sheetActionText}>New Group</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Secret Chats in development'); }}>
+                            <View style={[styles.sheetActionIconContainer, { backgroundColor: Colors.primaryDim }]}>
+                                <Icon name="lock-closed-outline" size={22} color={Colors.primary} />
+                            </View>
+                            <Text style={styles.sheetActionText}>New Secret Chat</Text>
+                        </TouchableOpacity>
+                        <View style={styles.sheetDivider} />
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => setActionSheetVisible(false)}>
+                            <View style={styles.sheetActionIconContainer}><Icon name="checkmark-done-outline" size={22} color={Colors.textPrimary} /></View>
+                            <Text style={styles.sheetActionText}>Mark All as Read</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
+            {/* Specific Chat Context Menu Sheet */}
+            {chatContextMenu.visible && chatContextMenu.chat && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setChatContextMenu({ visible: false, chat: null })} />
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHandle} />
+
+                        <View style={styles.contextHeader}>
+                            <Text style={styles.contextTitle} numberOfLines={1}>{chatContextMenu.chat.otherUser?.displayName || 'Chat Options'}</Text>
+                        </View>
+
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => handlePinMuteToggle('pin')}>
+                            <View style={styles.sheetActionIconContainer}>
+                                <Icon name={chatSettings.pinnedChats.includes(chatContextMenu.chat.id) ? "pin" : "pin-outline"} size={22} color={Colors.textPrimary} />
+                            </View>
+                            <Text style={styles.sheetActionText}>
+                                {chatSettings.pinnedChats.includes(chatContextMenu.chat.id) ? "Unpin from Top" : "Pin to Top"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => handlePinMuteToggle('mute')}>
+                            <View style={styles.sheetActionIconContainer}>
+                                <Icon name={chatSettings.mutedChats.includes(chatContextMenu.chat.id) ? "volume-high-outline" : "volume-mute-outline"} size={22} color={Colors.textPrimary} />
+                            </View>
+                            <Text style={styles.sheetActionText}>
+                                {chatSettings.mutedChats.includes(chatContextMenu.chat.id) ? "Unmute Notifications" : "Mute Notifications"}
+                            </Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.sheetDivider} />
+
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => handleDeleteChat(chatContextMenu.chat!)}>
+                            <View style={[styles.sheetActionIconContainer, { backgroundColor: Colors.dangerDim }]}>
+                                <Icon name="trash-outline" size={22} color={Colors.error} />
+                            </View>
+                            <Text style={[styles.sheetActionText, { color: Colors.error }]}>Delete Chat</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </View>
     );
 };
@@ -398,6 +505,59 @@ const styles = StyleSheet.create({
         height: '100%',
     },
     deleteText: { color: 'white', fontWeight: '600', fontSize: 11, marginTop: 4 },
+
+    // Modals
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: Colors.overlayLight,
+        justifyContent: 'flex-end',
+        zIndex: 10,
+    },
+    modalDismissArea: { flex: 1 },
+    bottomSheet: {
+        backgroundColor: Colors.surface,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+        paddingTop: 12,
+    },
+    sheetHandle: {
+        width: 40,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: Colors.divider,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    contextHeader: {
+        paddingHorizontal: Spacing.xl,
+        paddingBottom: 12,
+        marginBottom: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.divider,
+        alignItems: 'center',
+    },
+    contextTitle: {
+        ...Typography.h4,
+        color: Colors.textPrimary,
+    },
+    sheetActionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: Spacing.xl,
+    },
+    sheetActionIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.surfaceBright,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    sheetActionText: { ...Typography.body, color: Colors.textPrimary, fontWeight: '500' },
+    sheetDivider: { height: 1, backgroundColor: Colors.divider, marginLeft: 76 },
 });
 
 export default ChatListScreen;
