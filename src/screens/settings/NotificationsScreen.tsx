@@ -3,11 +3,13 @@ import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, Toucha
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing } from '../../constants/theme';
-import { useSettingsStore } from '../../store';
+import { useSettingsStore, useChatStore } from '../../store';
+import { notificationService } from '../../services/notificationService';
 
 const NotificationsScreen: React.FC = () => {
     const navigation = useNavigation();
     const { notifications, updateNotifications } = useSettingsStore();
+    const { chats } = useChatStore();
 
     // Notification state
     const {
@@ -68,7 +70,24 @@ const NotificationsScreen: React.FC = () => {
                 <View style={styles.sectionContainer}>
                     <View style={styles.settingRow}>
                         <Text style={styles.settingLabel}>Badge App Icon</Text>
-                        <Switch value={badgeAppIcon} onValueChange={(val) => updateNotifications({ badgeAppIcon: val })} trackColor={{ false: Colors.border, true: Colors.primary }} />
+                        <Switch
+                            value={badgeAppIcon}
+                            onValueChange={(val) => {
+                                updateNotifications({ badgeAppIcon: val });
+                                // Immediately update badge on toggle by calculating total from chats store,
+                                // or setting to 0 if we toggled off. notificationService handles checking settings state inside.
+                                // However, updateNotifications is async state internally in Zustand so we pass the value manually 
+                                // to a scoped check to be safe, or we let notificationService handle it by calling it directly 
+                                // but we need to ensure the store is flushed. For robustness, we'll force the badge count here.
+                                if (val) {
+                                    const totalUnread = chats.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
+                                    notificationService.updateBadgeCount(totalUnread);
+                                } else {
+                                    notificationService.updateBadgeCount(0); // force clear
+                                }
+                            }}
+                            trackColor={{ false: Colors.border, true: Colors.primary }}
+                        />
                     </View>
                 </View>
 

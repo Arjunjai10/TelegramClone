@@ -11,6 +11,15 @@ export interface User {
     online: boolean;
     lastSeen: FirebaseFirestoreTypes.Timestamp | null;
     createdAt: FirebaseFirestoreTypes.Timestamp | null;
+    settings?: {
+        notifications: {
+            privateChats: boolean;
+            groupChats: boolean;
+            inAppSounds: boolean;
+            inAppVibrate: boolean;
+            inAppPreview: boolean;
+        };
+    };
 }
 
 export interface Chat {

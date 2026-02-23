@@ -2,6 +2,7 @@ import messaging from '@react-native-firebase/messaging';
 import notifee, { AndroidImportance, EventType } from '@notifee/react-native';
 import { Platform } from 'react-native';
 import firestore from '@react-native-firebase/firestore';
+import { useSettingsStore } from '../store/settingsStore';
 
 export const notificationService = {
     /**
@@ -31,11 +32,32 @@ export const notificationService = {
     setupChannels: async () => {
         try {
             await notifee.createChannel({
-                id: 'messages',
-                name: 'Chat Messages',
+                id: 'messages_full',
+                name: 'Chat Messages (Sound & Vibrate)',
                 importance: AndroidImportance.HIGH,
                 sound: 'default',
                 vibration: true,
+            });
+            await notifee.createChannel({
+                id: 'messages_sound',
+                name: 'Chat Messages (Sound Only)',
+                importance: AndroidImportance.HIGH,
+                sound: 'default',
+                vibration: false,
+            });
+            await notifee.createChannel({
+                id: 'messages_vibrate',
+                name: 'Chat Messages (Vibrate Only)',
+                importance: AndroidImportance.HIGH,
+                sound: undefined,
+                vibration: true,
+            });
+            await notifee.createChannel({
+                id: 'messages_silent',
+                name: 'Chat Messages (Silent)',
+                importance: AndroidImportance.DEFAULT,
+                sound: undefined,
+                vibration: false,
             });
             await notifee.createChannel({
                 id: 'default',
@@ -52,12 +74,30 @@ export const notificationService = {
      */
     displayLocalNotification: async (title: string, body: string, data?: any) => {
         try {
+            const { notifications } = useSettingsStore.getState();
+            const { privateChats, groupChats, inAppSounds, inAppVibrate, inAppPreview } = notifications;
+
+            // 1. Check if we should notify at all based on chat type
+            const isGroup = data?.isGroup === true;
+            if (isGroup && !groupChats) return; // Group chat notifications disabled
+            if (!isGroup && !privateChats && data?.chatId) return; // Private chat notifications disabled
+
+            // 2. Determine display text based on Preview settings
+            const displayTitle = inAppPreview ? title : 'Telegram Clone';
+            const displayBody = inAppPreview ? body : 'New Message';
+
+            // 3. Determine Android Channel based on Sound & Vibrate settings
+            let channelId = 'messages_silent';
+            if (inAppSounds && inAppVibrate) channelId = 'messages_full';
+            else if (inAppSounds && !inAppVibrate) channelId = 'messages_sound';
+            else if (!inAppSounds && inAppVibrate) channelId = 'messages_vibrate';
+
             await notifee.displayNotification({
-                title,
-                body,
+                title: displayTitle,
+                body: displayBody,
                 data,
                 android: {
-                    channelId: 'messages',
+                    channelId: channelId,
                     smallIcon: 'ic_launcher', // Default React Native icon; replace if needed
                     pressAction: {
                         id: 'default',
@@ -65,8 +105,8 @@ export const notificationService = {
                 },
                 ios: {
                     foregroundPresentationOptions: {
-                        badge: true,
-                        sound: true,
+                        badge: true, // we handle badge number separately via updateBadgeCount
+                        sound: inAppSounds,
                         banner: true,
                         list: true,
                     },
@@ -74,6 +114,22 @@ export const notificationService = {
             });
         } catch (error) {
             console.error('[notificationService.displayLocalNotification]', error);
+        }
+    },
+
+    /**
+     * Update app badge count based on settings
+     */
+    updateBadgeCount: async (count: number) => {
+        try {
+            const { notifications } = useSettingsStore.getState();
+            if (notifications.badgeAppIcon) {
+                await notifee.setBadgeCount(count);
+            } else {
+                await notifee.setBadgeCount(0);
+            }
+        } catch (error) {
+            console.error('[notificationService.updateBadgeCount]', error);
         }
     },
 

@@ -84,6 +84,10 @@ export const useChatStore = create<ChatState>((set, get) => ({
             const populated = await get().populateChatUsers(chats, userId);
             set({ chats: populated, isLoadingChats: false });
 
+            // Calculate exact total unread count for app badge
+            const totalUnread = populated.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
+            notificationService.updateBadgeCount(totalUnread);
+
             // Check for new messages to trigger local notifications
             populated.forEach(chat => {
                 const lastMsg = chat.lastMessage;
@@ -94,10 +98,11 @@ export const useChatStore = create<ChatState>((set, get) => ({
                     // Only notify if we have a previous time (meaning this isn't initial load),
                     // the new message time is strictly greater, and the sender is NOT ourselves
                     if (prevTime !== undefined && msgTime > prevTime && lastMsg.senderId !== userId) {
+                        const isGroup = chat.participants.length > 2;
                         notificationService.displayLocalNotification(
-                            chat.otherUser?.displayName || 'New Message',
+                            isGroup ? 'Group Chat' : (chat.otherUser?.displayName || 'New Message'),
                             lastMsg.text,
-                            { chatId: chat.id }
+                            { chatId: chat.id, isGroup }
                         );
                     }
                     previousChats[chat.id] = msgTime; // Update tracked timestamp
@@ -145,7 +150,12 @@ export const useChatStore = create<ChatState>((set, get) => ({
         try {
             await chatService.deleteChat(chatId);
             // Optimistic local update
-            set((state) => ({ chats: state.chats.filter((c) => c.id !== chatId) }));
+            set((state) => {
+                const newChats = state.chats.filter((c) => c.id !== chatId);
+                const totalUnread = newChats.reduce((sum, chat) => sum + (chat.unreadCount || 0), 0);
+                notificationService.updateBadgeCount(totalUnread);
+                return { chats: newChats };
+            });
         } catch (error) {
             console.error('[chatStore.deleteChat]', error);
             Alert.alert('Error', 'Failed to delete chat. Please try again.');

@@ -1,6 +1,8 @@
 import { create } from 'zustand';
 import { persist, createJSONStorage } from 'zustand/middleware';
 import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuthStore } from './authStore';
+import { userService } from '../services/userService';
 
 interface NotificationsState {
     privateChats: boolean;
@@ -84,9 +86,27 @@ export const useSettingsStore = create<SettingsStore>()(
         (set) => ({
             ...defaultState,
 
-            updateNotifications: (updates) => set((state) => ({
-                notifications: { ...state.notifications, ...updates }
-            })),
+            updateNotifications: (updates) => set((state) => {
+                const newNotifications = { ...state.notifications, ...updates };
+
+                // Sync changes to Firestore for the backend / other clients to see via `settings` field
+                const authState = useAuthStore.getState();
+                if (authState.user?.id) {
+                    userService.setUser(authState.user.id, {
+                        settings: {
+                            notifications: {
+                                privateChats: newNotifications.privateChats,
+                                groupChats: newNotifications.groupChats,
+                                inAppSounds: newNotifications.inAppSounds,
+                                inAppVibrate: newNotifications.inAppVibrate,
+                                inAppPreview: newNotifications.inAppPreview,
+                            }
+                        }
+                    }).catch(console.error);
+                }
+
+                return { notifications: newNotifications };
+            }),
 
             updatePrivacy: (updates) => set((state) => ({
                 privacy: { ...state.privacy, ...updates }
