@@ -130,6 +130,47 @@ export const useChatStore = create<ChatState>((set, get) => ({
         };
         try {
             await chatService.sendMessage(chatId, messageData);
+
+            // Client-side push notification trigger for Spark plan users
+            const state = get();
+            const currentChat = state.chats.find(c => c.id === chatId);
+
+            if (currentChat && currentChat.otherUser) {
+                // Determine if this is a group chat
+                const isGroup = currentChat.participants.length > 2;
+
+                // Construct push data payload
+                const pushData = {
+                    chatId: currentChat.id,
+                    isGroup: String(isGroup) // FCM data payloads must be strings
+                };
+
+                // Format the title & body (will be masked by notificationService if user disabled preview)
+                let pushTitle = 'New Message';
+                if (isGroup) {
+                    pushTitle = 'Group Chat'; // Could be enhanced to show group name if implemented
+                } else {
+                    // Try to get the current user's name to show "Arjun sent a message"
+                    const currentParticipantId = currentChat.participants.find(p => p === senderId);
+                    pushTitle = currentParticipantId ? 'New Message' : 'Telegram Clone';
+                }
+
+                const pushBody = type === 'image' ? '📷 Photo' : text;
+
+                // Send the push directly to the other user's FCM token, respecting their settings
+                // Note: The `fcmToken` property needs to be added to the User model/Firestore by the auth flow
+                const targetUser = currentChat.otherUser as any;
+                if (targetUser.fcmToken || targetUser.pushToken) {
+                    const token = targetUser.fcmToken || targetUser.pushToken;
+                    notificationService.sendPushNotification(
+                        token,
+                        pushTitle,
+                        pushBody,
+                        pushData,
+                        targetUser.settings
+                    );
+                }
+            }
         } catch (error) {
             console.error('[chatStore.sendMessage]', error);
             Alert.alert('Send Failed', 'Message could not be sent. Please check your connection and try again.');
