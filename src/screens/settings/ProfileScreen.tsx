@@ -9,9 +9,10 @@ import {
     Platform,
     StatusBar,
     SafeAreaView,
+    Share,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
-import { Colors, BorderRadius, Spacing } from '../../constants/theme';
+import { Colors, BorderRadius, Spacing, Typography } from '../../constants/theme';
 import { useAuthStore } from '../../store';
 import Avatar from '../../components/common/Avatar';
 import { useNavigation } from '@react-navigation/native';
@@ -20,9 +21,13 @@ import { storageService } from '../../services/storageService';
 import { userService } from '../../services/userService';
 
 const ProfileScreen: React.FC = () => {
-    const { user, setUser } = useAuthStore();
+    const { user, setUser, signOut } = useAuthStore();
     const navigation = useNavigation<any>();
     const [isLoading, setIsLoading] = useState(false);
+
+    // Modal States
+    const [actionSheetVisible, setActionSheetVisible] = useState(false);
+    const [qrModalVisible, setQrModalVisible] = useState(false);
 
     const handlePickAvatar = async () => {
         if (!user?.id) return;
@@ -51,6 +56,30 @@ const ProfileScreen: React.FC = () => {
         { icon: 'settings-outline', label: 'Settings', onPress: () => navigation.navigate('Settings') },
     ];
 
+    const handleShareProfile = async () => {
+        setActionSheetVisible(false);
+        try {
+            await Share.share({
+                message: `Connect with me on VChat! vchat://u/${user?.id || 'unknown'}`,
+                title: 'Share Profile',
+            });
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        }
+    };
+
+    const handleLogout = () => {
+        setActionSheetVisible(false);
+        Alert.alert(
+            'Log Out',
+            'Are you sure you want to log out of VChat?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Log Out', style: 'destructive', onPress: signOut }
+            ]
+        );
+    };
+
     return (
         <View style={styles.container}>
             <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
@@ -60,10 +89,10 @@ const ProfileScreen: React.FC = () => {
                 <View style={styles.headerBar}>
                     <Text style={styles.headerTitle}>Profile</Text>
                     <View style={styles.headerActions}>
-                        <TouchableOpacity style={styles.headerIconBtn}>
+                        <TouchableOpacity style={styles.headerIconBtn} onPress={() => setQrModalVisible(true)}>
                             <Icon name="qr-code-outline" size={21} color={Colors.textSecondary} />
                         </TouchableOpacity>
-                        <TouchableOpacity style={styles.headerIconBtn}>
+                        <TouchableOpacity style={styles.headerIconBtn} onPress={() => setActionSheetVisible(true)}>
                             <Icon name="ellipsis-horizontal" size={21} color={Colors.textSecondary} />
                         </TouchableOpacity>
                     </View>
@@ -112,7 +141,7 @@ const ProfileScreen: React.FC = () => {
                             <Icon name="call-outline" size={16} color={Colors.primary} />
                         </View>
                         <View style={styles.detailContent}>
-                            <Text style={styles.detailValue} numberOfLines={1}>
+                            <Text style={styles.detailValue} numberOfLines={1} selectable={true}>
                                 {user?.phoneNumber || 'No number'}
                             </Text>
                             <Text style={styles.detailLabel}>Mobile</Text>
@@ -126,7 +155,7 @@ const ProfileScreen: React.FC = () => {
                                     <Icon name="information-circle-outline" size={16} color={Colors.primary} />
                                 </View>
                                 <View style={styles.detailContent}>
-                                    <Text style={styles.detailValue} numberOfLines={2}>{user.bio}</Text>
+                                    <Text style={styles.detailValue} numberOfLines={2} selectable={true}>{user.bio}</Text>
                                     <Text style={styles.detailLabel}>Bio</Text>
                                 </View>
                             </View>
@@ -145,6 +174,71 @@ const ProfileScreen: React.FC = () => {
                     </View>
                 </View>
             </ScrollView>
+
+            {/* Action Bottom Sheet */}
+            {actionSheetVisible && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setActionSheetVisible(false)} />
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHandle} />
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={handleShareProfile}>
+                            <View style={styles.sheetActionIconContainer}>
+                                <Icon name="share-outline" size={22} color={Colors.textPrimary} />
+                            </View>
+                            <Text style={styles.sheetActionText}>Share Profile</Text>
+                        </TouchableOpacity>
+
+                        <View style={styles.sheetDivider} />
+
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={handleLogout}>
+                            <View style={[styles.sheetActionIconContainer, { backgroundColor: Colors.dangerDim }]}>
+                                <Icon name="log-out-outline" size={22} color={Colors.error} />
+                            </View>
+                            <Text style={[styles.sheetActionText, { color: Colors.error }]}>Log Out</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
+
+            {/* QR Code Modal */}
+            {qrModalVisible && (
+                <View style={[styles.modalOverlay, { justifyContent: 'center', backgroundColor: Colors.overlay }]}>
+                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setQrModalVisible(false)} />
+                    <View style={styles.qrCard}>
+                        <View style={styles.qrHeader}>
+                            <Icon name="qr-code" size={24} color={Colors.primary} />
+                            <Text style={styles.qrTitle}>VChat ID</Text>
+                        </View>
+
+                        <View style={styles.qrMockGrid}>
+                            <View style={[styles.qrBlock, { top: 10, left: 10, width: 60, height: 60, borderRadius: 12, borderWidth: 8, borderColor: Colors.primary }]} />
+                            <View style={[styles.qrBlock, { top: 10, right: 10, width: 60, height: 60, borderRadius: 12, borderWidth: 8, borderColor: Colors.primary }]} />
+                            <View style={[styles.qrBlock, { bottom: 10, left: 10, width: 60, height: 60, borderRadius: 12, borderWidth: 8, borderColor: Colors.primary }]} />
+
+                            {/* Assorted mockup squares to simulate a QR */}
+                            <View style={[styles.qrBlock, { top: 80, left: 20, width: 20, height: 20, backgroundColor: Colors.primary }]} />
+                            <View style={[styles.qrBlock, { top: 80, left: 50, width: 40, height: 40, backgroundColor: Colors.primary }]} />
+                            <View style={[styles.qrBlock, { top: 20, left: 80, width: 30, height: 20, backgroundColor: Colors.primary }]} />
+                            <View style={[styles.qrBlock, { bottom: 80, right: 30, width: 50, height: 20, backgroundColor: Colors.primary }]} />
+                            <View style={[styles.qrBlock, { bottom: 40, right: 80, width: 20, height: 40, backgroundColor: Colors.primary }]} />
+                            <View style={[styles.qrBlock, { top: 90, right: 80, width: 30, height: 30, backgroundColor: Colors.primary }]} />
+
+                            {/* Core Avatar */}
+                            <View style={styles.qrCenterAvatar}>
+                                <Avatar uri={user?.photoURL} name={user?.displayName || 'U'} size={64} />
+                            </View>
+                        </View>
+
+                        <Text style={styles.qrName}>{user?.displayName || 'User'}</Text>
+                        <Text style={styles.qrSubtitle}>Scan to connect</Text>
+
+                        <TouchableOpacity style={styles.qrCloseBtn} onPress={() => setQrModalVisible(false)}>
+                            <Text style={styles.qrCloseBtnText}>Close</Text>
+                        </TouchableOpacity>
+                    </View>
+                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setQrModalVisible(false)} />
+                </View>
+            )}
         </View>
     );
 };
@@ -290,6 +384,91 @@ const styles = StyleSheet.create({
     mediaEmptyText: { flex: 1 },
     emptyTitle: { fontSize: 15, fontWeight: '700', color: Colors.textPrimary, marginBottom: 3 },
     emptySubtitle: { fontSize: 12, color: Colors.textSecondary, lineHeight: 17 },
+
+    // Modals
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: Colors.overlayLight,
+        justifyContent: 'flex-end',
+        zIndex: 10,
+    },
+    modalDismissArea: { flex: 1 },
+    bottomSheet: {
+        backgroundColor: Colors.surface,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+        paddingTop: 12,
+    },
+    sheetHandle: {
+        width: 40,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: Colors.divider,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    sheetActionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: Spacing.xl,
+    },
+    sheetActionIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.surfaceBright,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    sheetActionText: { ...Typography.body, color: Colors.textPrimary, fontWeight: '500' },
+    sheetDivider: { height: 1, backgroundColor: Colors.divider, marginLeft: 76 },
+
+    // QR Code Mock
+    qrCard: {
+        backgroundColor: Colors.surfaceElevated,
+        marginHorizontal: Spacing.xxl,
+        borderRadius: 24,
+        padding: Spacing.xxl,
+        alignItems: 'center',
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 10 },
+        shadowOpacity: 0.3,
+        shadowRadius: 20,
+        elevation: 8,
+    },
+    qrHeader: { flexDirection: 'row', alignItems: 'center', gap: 8, marginBottom: 24 },
+    qrTitle: { ...Typography.h4, color: Colors.textPrimary },
+    qrMockGrid: {
+        width: 220,
+        height: 220,
+        backgroundColor: Colors.surface,
+        borderRadius: 20,
+        position: 'relative',
+    },
+    qrBlock: { position: 'absolute' },
+    qrCenterAvatar: {
+        position: 'absolute',
+        top: '50%',
+        left: '50%',
+        marginLeft: -32,
+        marginTop: -32,
+        backgroundColor: Colors.surface,
+        padding: 4,
+        borderRadius: 40,
+    },
+    qrName: { ...Typography.h2, color: Colors.textPrimary, marginTop: 24 },
+    qrSubtitle: { ...Typography.body, color: Colors.textSecondary, marginTop: 4 },
+    qrCloseBtn: {
+        marginTop: 32,
+        paddingVertical: 12,
+        paddingHorizontal: 32,
+        backgroundColor: Colors.surfaceBright,
+        borderRadius: 20,
+    },
+    qrCloseBtnText: { ...Typography.bodyBold, color: Colors.textPrimary },
 });
 
 export default ProfileScreen;
