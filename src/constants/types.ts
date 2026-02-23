@@ -12,12 +12,20 @@ export interface User {
     lastSeen: FirebaseFirestoreTypes.Timestamp | null;
     createdAt: FirebaseFirestoreTypes.Timestamp | null;
     settings?: {
-        notifications: {
+        notifications?: {
             privateChats: boolean;
             groupChats: boolean;
             inAppSounds: boolean;
             inAppVibrate: boolean;
             inAppPreview: boolean;
+        };
+        privacy?: {
+            phoneNumber: string;
+            lastSeen: string;
+            profilePhoto: string;
+            calls: string;
+            passcode: boolean;
+            twoStepVerification: boolean;
         };
     };
 }

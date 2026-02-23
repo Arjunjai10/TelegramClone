@@ -2,15 +2,45 @@ import React, { useState } from 'react';
 import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, TouchableOpacity } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
+import { launchImageLibrary } from 'react-native-image-picker';
 import { Colors, Typography, Spacing } from '../../constants/theme';
 import { useSettingsStore } from '../../store';
+
+const TEXT_SIZES = ['12', '14', '16', '18', '20'];
 
 const ChatSettingsScreen: React.FC = () => {
     const navigation = useNavigation();
     const { chat, updateChat } = useSettingsStore();
 
     // Settings state
-    const { textSize, enterIsSend, saveToGallery } = chat;
+    const { textSize, enterIsSend, saveToGallery, wallpaper } = chat;
+
+    const [modalVisible, setModalVisible] = useState(false);
+
+    const handleSelectTextSize = (size: string) => {
+        updateChat({ textSize: size });
+        setModalVisible(false);
+    };
+
+    const handleChangeWallpaper = async () => {
+        try {
+            const result = await launchImageLibrary({
+                mediaType: 'photo',
+                selectionLimit: 1,
+            });
+
+            if (result.didCancel) return;
+
+            if (result.assets && result.assets.length > 0) {
+                const uri = result.assets[0].uri;
+                if (uri) {
+                    updateChat({ wallpaper: uri });
+                }
+            }
+        } catch (error) {
+            console.error('[ChatSettingsScreen] Error picking wallpaper:', error);
+        }
+    };
 
     return (
         <View style={styles.container}>
@@ -26,14 +56,20 @@ const ChatSettingsScreen: React.FC = () => {
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Text style={styles.sectionTitle}>SETTINGS</Text>
                 <View style={styles.sectionContainer}>
-                    <TouchableOpacity style={styles.settingRow}>
+                    <TouchableOpacity style={styles.settingRow} onPress={() => setModalVisible(true)}>
                         <Text style={styles.settingLabel}>Message Text Size</Text>
                         <Text style={styles.settingValue}>{textSize} <Icon name="chevron-forward" color={Colors.textSecondary} /></Text>
                     </TouchableOpacity>
                     <View style={styles.divider} />
-                    <TouchableOpacity style={styles.settingRow}>
+                    <TouchableOpacity style={styles.settingRow} onPress={handleChangeWallpaper}>
                         <Text style={styles.settingLabel}>Change Chat Wallpaper</Text>
-                        <Icon name="chevron-forward" color={Colors.textSecondary} />
+                        <View style={styles.wallpaperRight}>
+                            {wallpaper ? (
+                                <Text style={styles.settingValue}>Custom <Icon name="chevron-forward" color={Colors.textSecondary} /></Text>
+                            ) : (
+                                <Icon name="chevron-forward" color={Colors.textSecondary} />
+                            )}
+                        </View>
                     </TouchableOpacity>
                     <View style={styles.divider} />
                     <View style={styles.settingRow}>
@@ -48,6 +84,38 @@ const ChatSettingsScreen: React.FC = () => {
                 </View>
 
             </ScrollView>
+
+            {/* Text Size Selection Modal */}
+            {modalVisible && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setModalVisible(false)} />
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHeader}>
+                            <Text style={styles.sheetTitle}>Message Text Size</Text>
+                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                                <Icon name="close-circle" size={24} color={Colors.textSecondary} />
+                            </TouchableOpacity>
+                        </View>
+                        {TEXT_SIZES.map((size, index) => (
+                            <TouchableOpacity
+                                key={size}
+                                style={[styles.sheetOption, index !== TEXT_SIZES.length - 1 && styles.sheetOptionBorder]}
+                                onPress={() => handleSelectTextSize(size)}
+                            >
+                                <Text style={[
+                                    styles.sheetOptionText,
+                                    textSize === size && styles.sheetOptionSelectedText
+                                ]}>
+                                    {size}
+                                </Text>
+                                {textSize === size && (
+                                    <Icon name="checkmark" size={20} color={Colors.primary} />
+                                )}
+                            </TouchableOpacity>
+                        ))}
+                    </View>
+                </View>
+            )}
         </View>
     );
 };
@@ -115,6 +183,57 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.divider,
         marginLeft: Spacing.xl,
     },
+    wallpaperRight: {
+        flexDirection: 'row',
+        alignItems: 'center',
+    },
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: 'rgba(0, 0, 0, 0.4)',
+        justifyContent: 'flex-end',
+        zIndex: 10,
+    },
+    modalDismissArea: {
+        flex: 1,
+    },
+    bottomSheet: {
+        backgroundColor: Colors.surface,
+        borderTopLeftRadius: 16,
+        borderTopRightRadius: 16,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+    },
+    sheetHeader: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        padding: Spacing.xl,
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.divider,
+    },
+    sheetTitle: {
+        ...Typography.h4,
+        color: Colors.textPrimary,
+    },
+    sheetOption: {
+        flexDirection: 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        paddingVertical: Spacing.lg,
+        paddingHorizontal: Spacing.xl,
+    },
+    sheetOptionBorder: {
+        borderBottomWidth: 1,
+        borderBottomColor: Colors.divider,
+        marginLeft: Spacing.xl,
+    },
+    sheetOptionText: {
+        ...Typography.body,
+        color: Colors.textPrimary,
+    },
+    sheetOptionSelectedText: {
+        color: Colors.primary,
+        fontWeight: '600',
+    }
 });
 
 export default ChatSettingsScreen;

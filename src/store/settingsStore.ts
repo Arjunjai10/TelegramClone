@@ -27,6 +27,7 @@ interface ChatSettingsState {
     textSize: string;
     enterIsSend: boolean;
     saveToGallery: boolean;
+    wallpaper?: string;
 }
 
 interface DataStorageState {
@@ -72,6 +73,7 @@ const defaultState = {
         textSize: '16',
         enterIsSend: false,
         saveToGallery: true,
+        wallpaper: undefined,
     },
     storage: {
         cellular: true,
@@ -108,9 +110,28 @@ export const useSettingsStore = create<SettingsStore>()(
                 return { notifications: newNotifications };
             }),
 
-            updatePrivacy: (updates) => set((state) => ({
-                privacy: { ...state.privacy, ...updates }
-            })),
+            updatePrivacy: (updates) => set((state) => {
+                const newPrivacy = { ...state.privacy, ...updates };
+
+                // Sync privacy rules to Firestore so other clients can respect them
+                const authState = useAuthStore.getState();
+                if (authState.user?.id) {
+                    userService.setUser(authState.user.id, {
+                        settings: {
+                            privacy: {
+                                phoneNumber: newPrivacy.phoneNumber,
+                                lastSeen: newPrivacy.lastSeen,
+                                profilePhoto: newPrivacy.profilePhoto,
+                                calls: newPrivacy.calls,
+                                passcode: newPrivacy.passcode,
+                                twoStepVerification: newPrivacy.twoStepVerification
+                            }
+                        }
+                    }).catch(console.error);
+                }
+
+                return { privacy: newPrivacy };
+            }),
 
             updateChat: (updates) => set((state) => ({
                 chat: { ...state.chat, ...updates }

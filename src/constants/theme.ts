@@ -42,6 +42,7 @@ export const Colors = {
     online: '#00C896',              // Online dot — emerald
     danger: '#FF4757',              // Red for destructive
     dangerDim: 'rgba(255,71,87,0.12)',
+    error: '#FF4757',               // Alias for danger for forms/alerts
 
     // ── Misc ──────────────────────────────────────────────────────────────────
     checkmark: '#00C896',
