@@ -12,6 +12,7 @@ import {
     Alert,
     PermissionsAndroid,
     ScrollView,
+    Share,
 } from 'react-native';
 import Contacts from 'react-native-contacts';
 import { useNavigation } from '@react-navigation/native';
@@ -99,10 +100,22 @@ const ContactsScreen: React.FC = () => {
         }
     };
 
-    const filteredContacts = contacts.filter((c) => {
-        if (!searchQuery.trim()) return true;
-        return c.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
-    });
+    const filteredContacts = contacts
+        .filter((c) => {
+            if (!searchQuery.trim()) return true;
+            return c.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
+        })
+        .sort((a, b) => {
+            // Sort by online status first
+            if (a.online === b.online) {
+                // If both are same online status, sort by lastSeen descending
+                const aTime = a.lastSeen?.toMillis() || 0;
+                const bTime = b.lastSeen?.toMillis() || 0;
+                return bTime - aTime;
+            }
+            // Online users come before offline users
+            return a.online ? -1 : 1;
+        });
 
     const handleContactPress = async (contact: User) => {
         if (!user?.id) return;
@@ -158,18 +171,37 @@ const ContactsScreen: React.FC = () => {
         </View>
     );
 
+    const handleInviteFriends = async () => {
+        try {
+            await Share.share({
+                message: 'Join me on VChat! A secure premium messaging app built with React Native.',
+                title: 'Invite to VChat',
+            });
+        } catch (error: any) {
+            Alert.alert('Error', error.message);
+        }
+    };
+
+    const handleRecentCalls = () => {
+        Alert.alert(
+            'Coming Soon',
+            'VoIP audio and video calls are currently in development.',
+            [{ text: 'OK', style: 'cancel' }]
+        );
+    };
+
     const renderHeader = () => (
         <View>
             {/* Action Cards */}
             <View style={styles.actionCard}>
-                <TouchableOpacity style={styles.actionItem}>
+                <TouchableOpacity style={styles.actionItem} onPress={handleInviteFriends}>
                     <View style={[styles.actionIconContainer, { backgroundColor: '#2AABEE' }]}>
                         <Icon name="person-add" size={20} color={Colors.white} />
                     </View>
                     <Text style={styles.actionText}>Invite Friends</Text>
                 </TouchableOpacity>
                 <View style={styles.actionDivider} />
-                <TouchableOpacity style={styles.actionItem}>
+                <TouchableOpacity style={styles.actionItem} onPress={handleRecentCalls}>
                     <View style={[styles.actionIconContainer, { backgroundColor: '#4DCD5E' }]}>
                         <Icon name="call" size={20} color={Colors.white} />
                     </View>
