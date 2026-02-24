@@ -306,19 +306,19 @@ const ChatListScreen: React.FC = () => {
 
                         <TouchableOpacity style={styles.sheetActionRow} onPress={() => handlePinMuteToggle('pin')}>
                             <View style={styles.sheetActionIconContainer}>
-                                <Icon name={chatSettings.pinnedChats.includes(chatContextMenu.chat.id) ? "pin" : "pin-outline"} size={22} color={Colors.textPrimary} />
+                                <Icon name={(chatSettings.pinnedChats || []).includes(chatContextMenu.chat.id) ? "pin" : "pin-outline"} size={22} color={Colors.textPrimary} />
                             </View>
                             <Text style={styles.sheetActionText}>
-                                {chatSettings.pinnedChats.includes(chatContextMenu.chat.id) ? "Unpin from Top" : "Pin to Top"}
+                                {(chatSettings.pinnedChats || []).includes(chatContextMenu.chat.id) ? "Unpin from Top" : "Pin to Top"}
                             </Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity style={styles.sheetActionRow} onPress={() => handlePinMuteToggle('mute')}>
                             <View style={styles.sheetActionIconContainer}>
-                                <Icon name={chatSettings.mutedChats.includes(chatContextMenu.chat.id) ? "volume-high-outline" : "volume-mute-outline"} size={22} color={Colors.textPrimary} />
+                                <Icon name={(chatSettings.mutedChats || []).includes(chatContextMenu.chat.id) ? "volume-high-outline" : "volume-mute-outline"} size={22} color={Colors.textPrimary} />
                             </View>
                             <Text style={styles.sheetActionText}>
-                                {chatSettings.mutedChats.includes(chatContextMenu.chat.id) ? "Unmute Notifications" : "Mute Notifications"}
+                                {(chatSettings.mutedChats || []).includes(chatContextMenu.chat.id) ? "Unmute Notifications" : "Mute Notifications"}
                             </Text>
                         </TouchableOpacity>
 

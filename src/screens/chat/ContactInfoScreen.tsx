@@ -10,12 +10,15 @@ import {
     Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { ChatStackParamList, User } from '../../constants/types';
-import { Colors, Spacing, BorderRadius } from '../../constants/theme';
+import { Colors, Spacing, BorderRadius, Typography } from '../../constants/theme';
 import { userService } from '../../services/userService';
+import { useChatStore, useSettingsStore } from '../../store';
 import Avatar from '../../components/common/Avatar';
 
+type NavProp = StackNavigationProp<ChatStackParamList, 'ContactInfo'>;
 type RoutePropType = RouteProp<ChatStackParamList, 'ContactInfo'>;
 
 const InfoRow: React.FC<{
@@ -30,7 +33,7 @@ const InfoRow: React.FC<{
                 <Icon name={icon} size={16} color={Colors.primary} />
             </View>
             <View style={infoStyles.content}>
-                <Text style={infoStyles.value} numberOfLines={2}>{value}</Text>
+                <Text style={infoStyles.value} numberOfLines={2} selectable={true}>{value}</Text>
                 <Text style={infoStyles.label}>{label}</Text>
             </View>
         </View>
@@ -55,10 +58,15 @@ const infoStyles = StyleSheet.create({
 });
 
 const ContactInfoScreen: React.FC = () => {
-    const navigation = useNavigation<any>();
+    const navigation = useNavigation<NavProp>();
     const route = useRoute<RoutePropType>();
     const { userId } = route.params;
+
     const [contact, setContact] = useState<User | null>(null);
+    const [actionSheetVisible, setActionSheetVisible] = useState(false);
+
+    const { chat: chatSettings, togglePinChat, toggleMuteChat } = useSettingsStore();
+    const { deleteChat, chats } = useChatStore();
 
     useEffect(() => {
         const unsubscribe = userService.onUserChanged(userId, (user) => {
@@ -76,12 +84,60 @@ const ContactInfoScreen: React.FC = () => {
 
     const statusText = contact.online ? 'online' : 'last seen recently';
 
+    const handleMessage = () => {
+        // Find existing chat ID for these generic User pages. 
+        // This is necessary because ContactInfo is generic and doesn't know its Chat ID natively.
+        const existingChat = chats.find(c => c.participants.includes(userId));
+        if (existingChat) {
+            navigation.navigate('Chat', { chatId: existingChat.id, otherUser: contact });
+        } else {
+            Alert.alert('No Chat', 'Start a conversation from the Contacts list first.');
+        }
+    };
+
+    const handlePinMuteToggle = (action: 'pin' | 'mute') => {
+        const existingChat = chats.find(c => c.participants.includes(userId));
+        if (!existingChat) {
+            Alert.alert('No Chat', 'Start a conversation from the Contacts list first.');
+            return;
+        }
+        if (action === 'pin') togglePinChat(existingChat.id);
+        if (action === 'mute') toggleMuteChat(existingChat.id);
+    };
+
+    const handleDeleteChat = () => {
+        const existingChat = chats.find(c => c.participants.includes(userId));
+        if (!existingChat) {
+            Alert.alert('No Chat', 'Start a conversation from the Contacts list first.');
+            return;
+        }
+        Alert.alert('Delete Chat', 'This will permanently remove the conversation.', [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Delete', style: 'destructive',
+                onPress: async () => {
+                    try {
+                        await deleteChat(existingChat.id);
+                        navigation.navigate('ChatList');
+                    } catch {
+                        Alert.alert('Error', 'Failed to delete chat');
+                    }
+                },
+            },
+        ]);
+    };
+
     const handleBlock = () => {
         Alert.alert('Block User', `Block ${contact.displayName}?`, [
             { text: 'Cancel', style: 'cancel' },
             { text: 'Block', style: 'destructive', onPress: () => navigation.goBack() },
         ]);
     };
+
+    // Calculate current Pin/Mute states
+    const existingChat = chats.find(c => c.participants.includes(userId));
+    const isPinned = existingChat ? (chatSettings.pinnedChats || []).includes(existingChat.id) : false;
+    const isMuted = existingChat ? (chatSettings.mutedChats || []).includes(existingChat.id) : false;
 
     return (
         <View style={styles.container}>
@@ -93,7 +149,7 @@ const ContactInfoScreen: React.FC = () => {
                     <Icon name="chevron-back" size={26} color={Colors.textPrimary} />
                 </TouchableOpacity>
                 <Text style={styles.headerTitle}>Contact Info</Text>
-                <TouchableOpacity style={styles.headerBtn}>
+                <TouchableOpacity style={styles.headerBtn} onPress={() => setActionSheetVisible(true)}>
                     <Icon name="ellipsis-vertical" size={20} color={Colors.textSecondary} />
                 </TouchableOpacity>
             </View>
@@ -120,11 +176,11 @@ const ContactInfoScreen: React.FC = () => {
                 {/* Quick actions */}
                 <View style={styles.quickActions}>
                     {[
-                        { icon: 'chatbubble-outline', label: 'Message' },
-                        { icon: 'call-outline', label: 'Call' },
-                        { icon: 'videocam-outline', label: 'Video' },
+                        { icon: 'chatbubble-outline', label: 'Message', action: handleMessage },
+                        { icon: 'call-outline', label: 'Call', action: () => Alert.alert('Coming Soon', 'Voice Calls in development') },
+                        { icon: 'videocam-outline', label: 'Video', action: () => Alert.alert('Coming Soon', 'Video Calls in development') },
                     ].map((a) => (
-                        <TouchableOpacity key={a.label} style={styles.quickBtn} activeOpacity={0.75}>
+                        <TouchableOpacity key={a.label} style={styles.quickBtn} activeOpacity={0.75} onPress={a.action}>
                             <View style={styles.quickIconBg}>
                                 <Icon name={a.icon} size={20} color={Colors.primary} />
                             </View>
@@ -151,12 +207,33 @@ const ContactInfoScreen: React.FC = () => {
                 {/* Actions card */}
                 <View style={styles.card}>
                     {[
-                        { icon: 'notifications-outline', label: 'Notifications', color: Colors.textPrimary },
-                        { icon: 'images-outline', label: 'Media & Files', color: Colors.textPrimary },
-                        { icon: 'search-outline', label: 'Search in Chat', color: Colors.textPrimary },
+                        {
+                            icon: isMuted ? 'volume-mute-outline' : 'volume-high-outline',
+                            label: isMuted ? 'Unmute' : 'Mute',
+                            color: Colors.textPrimary,
+                            action: () => handlePinMuteToggle('mute')
+                        },
+                        {
+                            icon: isPinned ? 'pin' : 'pin-outline',
+                            label: isPinned ? 'Unpin from Top' : 'Pin to Top',
+                            color: Colors.textPrimary,
+                            action: () => handlePinMuteToggle('pin')
+                        },
+                        {
+                            icon: 'images-outline',
+                            label: 'Media & Files',
+                            color: Colors.textPrimary,
+                            action: () => Alert.alert('Coming Soon', 'Gallery in development')
+                        },
+                        {
+                            icon: 'search-outline',
+                            label: 'Search in Chat',
+                            color: Colors.textPrimary,
+                            action: () => Alert.alert('Coming Soon', 'Search in development')
+                        },
                     ].map((item, i, arr) => (
                         <React.Fragment key={item.label}>
-                            <TouchableOpacity style={styles.actionRow} activeOpacity={0.7}>
+                            <TouchableOpacity style={styles.actionRow} activeOpacity={0.7} onPress={item.action}>
                                 <View style={styles.actionIconBg}>
                                     <Icon name={item.icon} size={16} color={Colors.primary} />
                                 </View>
@@ -171,9 +248,8 @@ const ContactInfoScreen: React.FC = () => {
                 {/* Danger card */}
                 <View style={styles.card}>
                     {[
-                        { icon: 'volume-mute-outline', label: 'Mute', danger: false },
                         { icon: 'ban-outline', label: 'Block User', danger: true, onPress: handleBlock },
-                        { icon: 'trash-outline', label: 'Delete Chat', danger: true },
+                        { icon: 'trash-outline', label: 'Delete Chat', danger: true, onPress: handleDeleteChat },
                     ].map((item, i, arr) => (
                         <React.Fragment key={item.label}>
                             <TouchableOpacity style={styles.actionRow} activeOpacity={0.7} onPress={item.onPress}>
@@ -189,6 +265,22 @@ const ContactInfoScreen: React.FC = () => {
                     ))}
                 </View>
             </ScrollView>
+
+            {/* Header Action Sheet */}
+            {actionSheetVisible && (
+                <View style={styles.modalOverlay}>
+                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setActionSheetVisible(false)} />
+                    <View style={styles.bottomSheet}>
+                        <View style={styles.sheetHandle} />
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Share Contact in development'); }}>
+                            <View style={styles.sheetActionIconContainer}>
+                                <Icon name="share-outline" size={22} color={Colors.textPrimary} />
+                            </View>
+                            <Text style={styles.sheetActionText}>Share Contact</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+            )}
         </View>
     );
 };
@@ -301,6 +393,46 @@ const styles = StyleSheet.create({
     },
     dangerLabel: { color: Colors.danger },
     rowDivider: { height: 1, backgroundColor: Colors.divider, marginLeft: 46 },
+
+    // Modals
+    modalOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: Colors.overlayLight,
+        justifyContent: 'flex-end',
+        zIndex: 10,
+    },
+    modalDismissArea: { flex: 1 },
+    bottomSheet: {
+        backgroundColor: Colors.surface,
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        paddingBottom: Platform.OS === 'ios' ? 40 : 20,
+        paddingTop: 12,
+    },
+    sheetHandle: {
+        width: 40,
+        height: 5,
+        borderRadius: 3,
+        backgroundColor: Colors.divider,
+        alignSelf: 'center',
+        marginBottom: 20,
+    },
+    sheetActionRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 14,
+        paddingHorizontal: Spacing.xl,
+    },
+    sheetActionIconContainer: {
+        width: 40,
+        height: 40,
+        borderRadius: 20,
+        backgroundColor: Colors.surfaceBright,
+        justifyContent: 'center',
+        alignItems: 'center',
+        marginRight: 16,
+    },
+    sheetActionText: { ...Typography.body, color: Colors.textPrimary, fontWeight: '500' },
 });
 
 export default ContactInfoScreen;

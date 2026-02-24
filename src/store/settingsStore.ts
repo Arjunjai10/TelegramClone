@@ -144,18 +144,20 @@ export const useSettingsStore = create<SettingsStore>()(
             })),
 
             togglePinChat: (chatId) => set((state) => {
-                const isPinned = state.chat.pinnedChats.includes(chatId);
+                const pinned = state.chat.pinnedChats || [];
+                const isPinned = pinned.includes(chatId);
                 const pinnedChats = isPinned
-                    ? state.chat.pinnedChats.filter(id => id !== chatId)
-                    : [...state.chat.pinnedChats, chatId];
+                    ? pinned.filter(id => id !== chatId)
+                    : [...pinned, chatId];
                 return { chat: { ...state.chat, pinnedChats } };
             }),
 
             toggleMuteChat: (chatId) => set((state) => {
-                const isMuted = state.chat.mutedChats.includes(chatId);
+                const muted = state.chat.mutedChats || [];
+                const isMuted = muted.includes(chatId);
                 const mutedChats = isMuted
-                    ? state.chat.mutedChats.filter(id => id !== chatId)
-                    : [...state.chat.mutedChats, chatId];
+                    ? muted.filter(id => id !== chatId)
+                    : [...muted, chatId];
                 return { chat: { ...state.chat, mutedChats } };
             }),
 
