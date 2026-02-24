@@ -72,8 +72,8 @@ const ChatListScreen: React.FC = () => {
         })
         .sort((a, b) => {
             // Sort pinned chats to the top
-            const aPinned = chatSettings.pinnedChats.includes(a.id);
-            const bPinned = chatSettings.pinnedChats.includes(b.id);
+            const aPinned = chatSettings.pinnedChats?.includes(a.id) ?? false;
+            const bPinned = chatSettings.pinnedChats?.includes(b.id) ?? false;
             if (aPinned && !bPinned) return -1;
             if (!aPinned && bPinned) return 1;
             // Otherwise maintain default chronological backend sort (or handle timestamp if needed)
@@ -135,8 +135,8 @@ const ChatListScreen: React.FC = () => {
     };
 
     const renderItem = ({ item }: { item: Chat }) => {
-        const isPinned = chatSettings.pinnedChats.includes(item.id);
-        const isMuted = chatSettings.mutedChats.includes(item.id);
+        const isPinned = chatSettings.pinnedChats?.includes(item.id) ?? false;
+        const isMuted = chatSettings.mutedChats?.includes(item.id) ?? false;
 
         return (
             <Swipeable renderRightActions={(p, d) => renderRightActions(p, d, item)}>
