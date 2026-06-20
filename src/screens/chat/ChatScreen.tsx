@@ -37,8 +37,23 @@ const ChatScreen: React.FC = () => {
         const unsubscribeTyping = chatService.subscribeToTypingStatus(chatId, (userIds) => {
             setIsTyping(userIds.includes(otherUser.id));
         });
+
+        // Reset unread count badge immediately when the chat is opened
+        chatService.resetUnreadCount(chatId).catch(() => {});
+
         return () => { unsubscribeMessages(); unsubscribeTyping(); };
     }, [chatId, subscribeToMessages, otherUser.id]);
+
+    // Mark incoming messages as read as they arrive
+    useEffect(() => {
+        if (!user?.id || activeMessages.length === 0) return;
+        const unreadIds = activeMessages
+            .filter((m) => !m.read && m.senderId !== user.id)
+            .map((m) => m.id);
+        if (unreadIds.length > 0) {
+            chatService.markAsRead(chatId, unreadIds).catch(() => {});
+        }
+    }, [activeMessages, chatId, user?.id]);
 
     const handleSend = useCallback((text: string) => {
         if (!user?.id) return;

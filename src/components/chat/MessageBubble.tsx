@@ -1,9 +1,10 @@
-import React from 'react';
-import { View, Text, Image, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, Image, StyleSheet, ActivityIndicator } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Message } from '../../constants/types';
 import { Colors, Spacing, BorderRadius } from '../../constants/theme';
 import { format } from 'date-fns';
+import { useSettingsStore } from '../../store';
 
 interface MessageBubbleProps {
     message: Message;
@@ -11,6 +12,11 @@ interface MessageBubbleProps {
 }
 
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMine }) => {
+    const [imageLoading, setImageLoading] = useState(true);
+    const [imageError, setImageError] = useState(false);
+    const { chat: chatSettings } = useSettingsStore();
+    const fontSize = parseInt(chatSettings.textSize || '16', 10);
+
     const timestamp = message.createdAt?.toDate
         ? format(message.createdAt.toDate(), 'HH:mm')
         : '';
@@ -19,10 +25,32 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMine }) => {
         <View style={[styles.wrapper, isMine ? styles.wrapperMine : styles.wrapperTheirs]}>
             <View style={[styles.bubble, isMine ? styles.bubbleMine : styles.bubbleTheirs]}>
                 {message.type === 'image' && message.imageURL && (
-                    <Image source={{ uri: message.imageURL }} style={styles.image} resizeMode="cover" />
+                    <View style={styles.imageContainer}>
+                        {!imageError ? (
+                            <>
+                                <Image
+                                    source={{ uri: message.imageURL }}
+                                    style={styles.image}
+                                    resizeMode="cover"
+                                    onLoad={() => setImageLoading(false)}
+                                    onError={() => { setImageLoading(false); setImageError(true); }}
+                                />
+                                {imageLoading && (
+                                    <View style={styles.imageLoadingOverlay}>
+                                        <ActivityIndicator size="small" color={Colors.primary} />
+                                    </View>
+                                )}
+                            </>
+                        ) : (
+                            <View style={styles.imageErrorContainer}>
+                                <Icon name="image-outline" size={32} color={Colors.textSecondary} />
+                                <Text style={styles.imageErrorText}>Image unavailable</Text>
+                            </View>
+                        )}
+                    </View>
                 )}
                 {message.text ? (
-                    <Text style={[styles.text, isMine ? styles.textMine : styles.textTheirs]}>
+                    <Text style={[styles.text, isMine ? styles.textMine : styles.textTheirs, { fontSize }]}>
                         {message.text}
                     </Text>
                 ) : null}
@@ -70,7 +98,7 @@ const styles = StyleSheet.create({
         borderWidth: 1,
         borderColor: Colors.border,
     },
-    text: { fontSize: 15.5, lineHeight: 21, letterSpacing: 0.1, fontWeight: '400' },
+    text: { lineHeight: 21, letterSpacing: 0.1, fontWeight: '400' },
     textMine: { color: Colors.sentBubbleText },
     textTheirs: { color: Colors.receivedBubbleText },
     meta: {
@@ -84,11 +112,34 @@ const styles = StyleSheet.create({
     timeMine: { color: Colors.timestampSent },
     timeTheirs: { color: Colors.textTertiary },
     checkIcon: {},
+    imageContainer: {
+        position: 'relative',
+        marginBottom: Spacing.xs,
+    },
     image: {
         width: 220,
         height: 220,
         borderRadius: BorderRadius.md,
-        marginBottom: Spacing.xs,
+    },
+    imageLoadingOverlay: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: Colors.surface,
+        borderRadius: BorderRadius.md,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    imageErrorContainer: {
+        width: 220,
+        height: 120,
+        borderRadius: BorderRadius.md,
+        backgroundColor: Colors.surfaceElevated,
+        justifyContent: 'center',
+        alignItems: 'center',
+        gap: 8,
+    },
+    imageErrorText: {
+        fontSize: 13,
+        color: Colors.textSecondary,
     },
 });
 

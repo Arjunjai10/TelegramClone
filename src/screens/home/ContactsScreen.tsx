@@ -22,6 +22,7 @@ import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme
 import { useAuthStore, useChatStore } from '../../store';
 import { userService } from '../../services/userService';
 import Avatar from '../../components/common/Avatar';
+import { format as formatTime } from 'date-fns';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10;
 
@@ -134,7 +135,23 @@ const ContactsScreen: React.FC = () => {
 
     const formatLastSeen = (contact: User): string => {
         if (contact.online) return 'online';
-        return 'last seen recently';
+        if (!contact.lastSeen) return 'last seen recently';
+
+        const lastSeenDate = contact.lastSeen.toDate
+            ? contact.lastSeen.toDate()
+            : new Date(contact.lastSeen as any);
+        const now = new Date();
+        const diffMs = now.getTime() - lastSeenDate.getTime();
+        const diffMins = Math.floor(diffMs / 60000);
+        const diffHours = Math.floor(diffMs / 3600000);
+        const diffDays = Math.floor(diffMs / 86400000);
+
+        if (diffMins < 1) return 'last seen just now';
+        if (diffMins < 60) return `last seen ${diffMins}m ago`;
+        if (diffHours < 24) return `last seen today at ${formatTime(lastSeenDate, 'HH:mm')}`;
+        if (diffDays === 1) return 'last seen yesterday';
+        if (diffDays < 7) return `last seen ${formatTime(lastSeenDate, 'EEE')}`;
+        return `last seen ${formatTime(lastSeenDate, 'dd MMM')}`;
     };
 
     const renderContact = (contact: User) => (

@@ -9,6 +9,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Spacing, BorderRadius } from '../../constants/theme';
+import { useSettingsStore } from '../../store';
 
 interface MessageInputProps {
     onSend: (text: string) => void;
@@ -20,6 +21,8 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, onAttachPress, onTy
     const [text, setText] = useState('');
     const inputRef = useRef<TextInput>(null);
     const typingTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+    const { chat: chatSettings } = useSettingsStore();
+    const enterIsSend = chatSettings.enterIsSend;
 
     // Animations
     const sendScale = useRef(new Animated.Value(1)).current;
@@ -80,9 +83,12 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, onAttachPress, onTy
                     placeholderTextColor={Colors.textTertiary}
                     value={text}
                     onChangeText={handleTextChange}
-                    multiline
+                    multiline={!enterIsSend}
                     maxLength={4096}
                     selectionColor={Colors.primary}
+                    returnKeyType={enterIsSend ? 'send' : 'default'}
+                    onSubmitEditing={enterIsSend ? handleSend : undefined}
+                    blurOnSubmit={false}
                 />
                 <TouchableOpacity style={styles.emojiButton} activeOpacity={0.6}>
                     <Icon name="happy-outline" size={22} color={Colors.textSecondary} />

@@ -183,68 +183,35 @@ export const notificationService = {
     },
 
     /**
-     * Send a Push Notification to a user via Firebase Cloud Messaging REST API.
-     * Used for Client-to-Client push (No Backend approach).
-     * REQUIRES: FCM_SERVER_KEY in environment or as a constant.
+     * Send a push notification to a specific user device.
+     *
+     * ⚠️  CLIENT-TO-CLIENT PUSH REQUIRES A BACKEND ⚠️
+     *
+     * Sending FCM push notifications directly from the app (client-to-client)
+     * is NOT supported securely in production:
+     *
+     * - The FCM Legacy REST API (v1/send) requires an OAuth2 Service Account token,
+     *   which must be obtained server-side (never expose private keys in the app).
+     * - The legacy Server Key approach is deprecated by Google as of June 2024.
+     * - Without a backend (Cloud Functions, Express, etc.), this method is a no-op.
+     *
+     * ✅ To enable push notifications:
+     *   1. Deploy a Firebase Cloud Function that listens to Firestore message writes
+     *      and sends FCM pushes using the Admin SDK:
+     *      https://firebase.google.com/docs/functions/use-cases#notify_users
+     *   2. OR set up your own server with the Firebase Admin SDK.
+     *
+     * Local in-app notifications (displayLocalNotification) work perfectly on Spark plan.
      */
     sendPushNotification: async (
-        token: string,
-        title: string,
-        body: string,
-        data: any,
-        recipientSettings?: any
-    ) => {
-        // Evaluate recipient preferences before sending
-        const isGroup = data?.isGroup === true;
-
-        if (recipientSettings?.notifications) {
-            const { privateChats, groupChats, inAppSounds, inAppPreview } = recipientSettings.notifications;
-
-            if (isGroup && !groupChats) return; // Recipient muted groups
-            if (!isGroup && !privateChats) return; // Recipient muted private chats
-
-            if (!inAppPreview) {
-                title = 'Telegram Clone';
-                body = 'New Message';
-            }
-
-            // Note: inAppVibrate strictly requires Native Android channel override which FCM standard payloads don't map perfectly to, 
-            // but we can pass 'default' sound or omit it to respect inAppSounds.
-            if (!inAppSounds) {
-                // We handle silencing via passing empty sound payload, but OS defaults might still play if channel dictates
-            }
-        }
-
-        // IMPORTANT: Replace this with your actual Firebase Cloud Messaging Legacy Server Key
-        // found in Firebase Console -> Project Settings -> Cloud Messaging -> Legacy Server Key
-        const FIREBASE_SERVER_KEY = 'YOUR_SERVER_KEY_HERE';
-
-        if (FIREBASE_SERVER_KEY === 'YOUR_SERVER_KEY_HERE') {
-            console.warn('[notificationService.sendPushNotification] FCM Server Key missing. Push will not send.');
-            return;
-        }
-
-        try {
-            await fetch('https://fcm.googleapis.com/fcm/send', {
-                method: 'POST',
-                headers: {
-                    'Content-Type': 'application/json',
-                    Authorization: `key=${FIREBASE_SERVER_KEY}`,
-                },
-                body: JSON.stringify({
-                    to: token,
-                    notification: {
-                        title: title,
-                        body: body,
-                        sound: recipientSettings?.notifications?.inAppSounds === false ? undefined : 'default',
-                        badge: 1 // OS will auto-increment or use this
-                    },
-                    data: data,
-                    priority: 'high',
-                }),
-            });
-        } catch (error) {
-            console.error('[notificationService.sendPushNotification]', error);
-        }
-    }
+        _token: string,
+        _title: string,
+        _body: string,
+        _data: any,
+        _recipientSettings?: any
+    ): Promise<void> => {
+        // No-op: push notifications require a backend. See comment above.
+        // Local notifications (displayLocalNotification) are used for in-app alerts.
+        return;
+    },
 };

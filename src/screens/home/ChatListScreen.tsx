@@ -21,6 +21,7 @@ import { ChatStackParamList, Chat } from '../../constants/types';
 import { Colors, BorderRadius, Typography, Spacing } from '../../constants/theme';
 import { useAuthStore, useChatStore, useSettingsStore } from '../../store';
 import ChatListItem from '../../components/chat/ChatListItem';
+import { chatService } from '../../services/chatService';
 
 type NavProp = StackNavigationProp<ChatStackParamList, 'ChatList'>;
 type FilterKey = 'All' | 'Unread' | 'Groups' | 'Bots';
@@ -285,7 +286,17 @@ const ChatListScreen: React.FC = () => {
                             <Text style={styles.sheetActionText}>New Secret Chat</Text>
                         </TouchableOpacity>
                         <View style={styles.sheetDivider} />
-                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => setActionSheetVisible(false)}>
+                        <TouchableOpacity style={styles.sheetActionRow} onPress={async () => {
+                            setActionSheetVisible(false);
+                            const unreadChats = chats.filter(c => c.unreadCount > 0);
+                            if (unreadChats.length === 0) {
+                                Alert.alert('All Caught Up', 'No unread messages.');
+                                return;
+                            }
+                            await Promise.all(
+                                unreadChats.map(c => chatService.resetUnreadCount(c.id).catch(() => {}))
+                            );
+                        }}>
                             <View style={styles.sheetActionIconContainer}><Icon name="checkmark-done-outline" size={22} color={Colors.textPrimary} /></View>
                             <Text style={styles.sheetActionText}>Mark All as Read</Text>
                         </TouchableOpacity>

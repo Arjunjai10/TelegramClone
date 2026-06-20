@@ -1,4 +1,4 @@
-import {
+import firestore, {
     getFirestore,
     collection,
     doc,
@@ -210,6 +210,33 @@ class ChatService {
         } catch (error) {
             console.error('[chatService.markAsRead]', error);
             throw new Error('Failed to mark messages as read');
+        }
+    }
+
+    /**
+     * Increment the unread count for a chat document.
+     * Called when a message is sent so the recipient's unread count goes up.
+     * Uses FieldValue.increment for an atomic server-side increment (no race conditions).
+     */
+    async incrementUnreadCount(chatId: string): Promise<void> {
+        try {
+            await updateDoc(doc(this.chatsCollection, chatId), {
+                unreadCount: firestore.FieldValue.increment(1),
+            });
+        } catch {
+            // Non-critical — swallow silently
+        }
+    }
+
+    /**
+     * Reset the unread count for a chat to 0 (marks as read).
+     * Call this when the current user opens a chat to clear the badge.
+     */
+    async resetUnreadCount(chatId: string): Promise<void> {
+        try {
+            await updateDoc(doc(this.chatsCollection, chatId), { unreadCount: 0 });
+        } catch {
+            // Non-critical
         }
     }
 
