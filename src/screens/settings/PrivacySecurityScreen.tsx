@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, TouchableOpacity } from 'react-native';
+import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing } from '../../constants/theme';
@@ -19,6 +20,7 @@ const PRIVACY_OPTIONS: PrivacyOption[] = [
 ];
 
 const PrivacySecurityScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation();
     const { privacy, updatePrivacy } = useSettingsStore();
 
@@ -57,10 +59,10 @@ const PrivacySecurityScreen: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerButton} onPress={() => navigation.goBack()}>
                     <Icon name="arrow-back" size={24} color={Colors.white} />
-                </TouchableOpacity>
+                </Pressable>
                 <Text style={styles.headerTitle}>Privacy and Security</Text>
                 <View style={styles.headerButton} />
             </View>
@@ -68,25 +70,25 @@ const PrivacySecurityScreen: React.FC = () => {
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Text style={styles.sectionTitle}>PRIVACY</Text>
                 <View style={styles.sectionContainer}>
-                    <TouchableOpacity style={styles.settingRow} onPress={() => openSettingModal('phoneNumber')}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow} onPress={() => openSettingModal('phoneNumber')}>
                         <Text style={styles.settingLabel}>Phone Number</Text>
                         <Text style={styles.settingValue}>{phoneNumber} <Icon name="chevron-forward" color={Colors.textSecondary} /></Text>
-                    </TouchableOpacity>
+                    </Pressable>
                     <View style={styles.divider} />
-                    <TouchableOpacity style={styles.settingRow} onPress={() => openSettingModal('lastSeen')}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow} onPress={() => openSettingModal('lastSeen')}>
                         <Text style={styles.settingLabel}>Last Seen & Online</Text>
                         <Text style={styles.settingValue}>{lastSeen} <Icon name="chevron-forward" color={Colors.textSecondary} /></Text>
-                    </TouchableOpacity>
+                    </Pressable>
                     <View style={styles.divider} />
-                    <TouchableOpacity style={styles.settingRow} onPress={() => openSettingModal('profilePhoto')}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow} onPress={() => openSettingModal('profilePhoto')}>
                         <Text style={styles.settingLabel}>Profile Photo</Text>
                         <Text style={styles.settingValue}>{profilePhoto} <Icon name="chevron-forward" color={Colors.textSecondary} /></Text>
-                    </TouchableOpacity>
+                    </Pressable>
                     <View style={styles.divider} />
-                    <TouchableOpacity style={styles.settingRow} onPress={() => openSettingModal('calls')}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow} onPress={() => openSettingModal('calls')}>
                         <Text style={styles.settingLabel}>Calls</Text>
                         <Text style={styles.settingValue}>{calls} <Icon name="chevron-forward" color={Colors.textSecondary} /></Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
 
                 <Text style={styles.sectionTitle}>SECURITY</Text>
@@ -101,10 +103,10 @@ const PrivacySecurityScreen: React.FC = () => {
                         <Switch value={twoStepVerification} onValueChange={(val) => updatePrivacy({ twoStepVerification: val })} trackColor={{ false: Colors.border, true: Colors.primary }} />
                     </View>
                     <View style={styles.divider} />
-                    <TouchableOpacity style={styles.settingRow}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow}>
                         <Text style={styles.settingLabel}>Active Sessions</Text>
                         <Icon name="chevron-forward" color={Colors.textSecondary} />
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
 
             </ScrollView>
@@ -112,16 +114,16 @@ const PrivacySecurityScreen: React.FC = () => {
             {/* Privacy Selection Modal */}
             {modalVisible && (
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setModalVisible(false)} />
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.modalDismissArea} onPress={() => setModalVisible(false)} />
                     <View style={styles.bottomSheet}>
                         <View style={styles.sheetHeader}>
                             <Text style={styles.sheetTitle}>Who can see my {getDisplayTitle(activeSetting).toLowerCase()}?</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} onPress={() => setModalVisible(false)}>
                                 <Icon name="close-circle" size={24} color={Colors.textSecondary} />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                         {PRIVACY_OPTIONS.map((option, index) => (
-                            <TouchableOpacity
+                            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                                 key={option.value}
                                 style={[styles.sheetOption, index !== PRIVACY_OPTIONS.length - 1 && styles.sheetOptionBorder]}
                                 onPress={() => handleSelectOption(option.value)}
@@ -135,7 +137,7 @@ const PrivacySecurityScreen: React.FC = () => {
                                 {activeSetting && privacy[activeSetting] === option.value && (
                                     <Icon name="checkmark" size={20} color={Colors.primary} />
                                 )}
-                            </TouchableOpacity>
+                            </Pressable>
                         ))}
                     </View>
                 </View>
@@ -154,7 +156,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: Colors.headerBg,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         paddingBottom: 12,
         paddingHorizontal: Spacing.sm,
     },

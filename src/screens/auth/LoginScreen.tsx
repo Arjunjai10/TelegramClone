@@ -3,7 +3,7 @@ import {
     View,
     Text,
     StyleSheet,
-    TouchableOpacity,
+    Pressable,
     Dimensions,
     StatusBar,
     Animated,
@@ -112,20 +112,20 @@ const LoginScreen: React.FC = () => {
                         { opacity: fadeBtns, transform: [{ translateY: slideBtns }] },
                     ]}>
                     {/* Primary CTA */}
-                    <TouchableOpacity
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                         style={styles.primaryButton}
                         onPress={() => navigation.navigate('PhoneInput')}
-                        activeOpacity={0.85}>
+                        >
                         <Text style={styles.primaryButtonText}>START MESSAGING</Text>
                         <Icon name="arrow-forward" size={18} color={Colors.background} style={styles.btnIcon} />
-                    </TouchableOpacity>
+                    </Pressable>
 
                     {/* Google sign-in */}
-                    <TouchableOpacity
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                         style={[styles.googleButton, isLoading && { opacity: 0.7 }]}
                         onPress={handleGoogleSignIn}
                         disabled={isLoading}
-                        activeOpacity={0.85}>
+                        >
                         {isLoading ? (
                             <ActivityIndicator color={Colors.primary} />
                         ) : (
@@ -134,7 +134,7 @@ const LoginScreen: React.FC = () => {
                                 <Text style={styles.googleButtonText}>Continue with Google</Text>
                             </>
                         )}
-                    </TouchableOpacity>
+                    </Pressable>
                 </Animated.View>
             </View>
 

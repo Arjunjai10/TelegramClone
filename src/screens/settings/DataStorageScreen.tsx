@@ -1,11 +1,13 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, TouchableOpacity } from 'react-native';
+import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing } from '../../constants/theme';
 import { useSettingsStore } from '../../store';
 
 const DataStorageScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation();
     const { storage, updateStorage } = useSettingsStore();
 
@@ -37,10 +39,10 @@ const DataStorageScreen: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerButton} onPress={() => navigation.goBack()}>
                     <Icon name="arrow-back" size={24} color={Colors.white} />
-                </TouchableOpacity>
+                </Pressable>
                 <Text style={styles.headerTitle}>Data and Storage</Text>
                 <View style={styles.headerButton} />
             </View>
@@ -66,15 +68,15 @@ const DataStorageScreen: React.FC = () => {
 
                 <Text style={styles.sectionTitle}>STORAGE USAGE</Text>
                 <View style={styles.sectionContainer}>
-                    <TouchableOpacity style={styles.settingRow} onPress={() => openModal('storage')}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow} onPress={() => openModal('storage')}>
                         <Text style={styles.settingLabel}>Storage Usage</Text>
                         <Text style={styles.settingValue}>{mockStorageSize} <Icon name="chevron-forward" color={Colors.textSecondary} /></Text>
-                    </TouchableOpacity>
+                    </Pressable>
                     <View style={styles.divider} />
-                    <TouchableOpacity style={styles.settingRow} onPress={() => openModal('data')}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow} onPress={() => openModal('data')}>
                         <Text style={styles.settingLabel}>Data Usage</Text>
                         <Icon name="chevron-forward" color={Colors.textSecondary} />
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
 
             </ScrollView>
@@ -82,15 +84,15 @@ const DataStorageScreen: React.FC = () => {
             {/* Bottom Sheet Modal */}
             {modalVisible && (
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity style={styles.modalDismissArea} onPress={closeModal} />
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.modalDismissArea} onPress={closeModal} />
                     <View style={styles.bottomSheet}>
                         <View style={styles.sheetHeader}>
                             <Text style={styles.sheetTitle}>
                                 {activeModal === 'storage' ? 'Storage Usage' : 'Data Usage'}
                             </Text>
-                            <TouchableOpacity onPress={closeModal}>
+                            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} onPress={closeModal}>
                                 <Icon name="close-circle" size={24} color={Colors.textSecondary} />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
 
                         {activeModal === 'storage' && (
@@ -101,10 +103,10 @@ const DataStorageScreen: React.FC = () => {
                                     <Text style={styles.usageSubtext}>Documents & Data</Text>
                                 </View>
 
-                                <TouchableOpacity style={styles.clearCacheBtn} onPress={handleClearCache}>
+                                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.clearCacheBtn} onPress={handleClearCache}>
                                     <Icon name="trash-outline" size={20} color={Colors.error} />
                                     <Text style={styles.clearCacheText}>Clear Cache</Text>
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         )}
 
@@ -149,7 +151,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: Colors.headerBg,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         paddingBottom: 12,
         paddingHorizontal: Spacing.sm,
     },

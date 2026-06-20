@@ -1,5 +1,6 @@
 import React from 'react';
-import { View, Text, Image, StyleSheet, ViewStyle } from 'react-native';
+import { View, Text, StyleSheet, ViewStyle } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import { Colors, BorderRadius } from '../../constants/theme';
 
 interface AvatarProps {
@@ -59,7 +60,7 @@ const Avatar: React.FC<AvatarProps> = ({
     return (
         <View style={[styles.container, containerStyle, style]}>
             {uri ? (
-                <Image source={{ uri }} style={[styles.image, containerStyle]} />
+                <FastImage source={{ uri }} style={[styles.image, containerStyle]} />
             ) : (
                 <View
                     style={[

@@ -3,7 +3,7 @@ import {
     View,
     Text,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
@@ -121,11 +121,11 @@ const OTPScreen: React.FC = () => {
             style={styles.container}
             behavior={Platform.OS === 'ios' ? 'padding' : 'height'}>
             <View style={styles.content}>
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.backButton}
                     onPress={() => navigation.goBack()}>
                     <Icon name="arrow-back" size={24} color={Colors.textPrimary} />
-                </TouchableOpacity>
+                </Pressable>
 
                 <View style={styles.header}>
                     <View style={styles.iconCircle}>
@@ -176,13 +176,13 @@ const OTPScreen: React.FC = () => {
                             Resend code in {timer}s
                         </Text>
                     ) : (
-                        <TouchableOpacity onPress={handleResend} disabled={isResending}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} onPress={handleResend} disabled={isResending}>
                             {isResending ? (
                                 <ActivityIndicator size="small" color={Colors.primary} />
                             ) : (
                                 <Text style={styles.resendText}>Resend Code</Text>
                             )}
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                 </View>
             </View>

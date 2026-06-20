@@ -2,7 +2,7 @@ import React from 'react';
 import {
     View,
     Text,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
 } from 'react-native';
 import { format, isToday, isYesterday, isThisWeek } from 'date-fns';
@@ -36,11 +36,11 @@ const ChatListItem: React.FC<ChatListItemProps> = ({ chat, isPinned, isMuted, on
     const hasUnread = chat.unreadCount > 0;
 
     return (
-        <TouchableOpacity
+        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
             style={styles.container}
             onPress={onPress}
             onLongPress={onLongPress}
-            activeOpacity={0.65}>
+            >
             <Avatar
                 uri={otherUser?.photoURL}
                 name={otherUser?.displayName || 'User'}
@@ -85,7 +85,7 @@ const ChatListItem: React.FC<ChatListItemProps> = ({ chat, isPinned, isMuted, on
                     )}
                 </View>
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 };
 

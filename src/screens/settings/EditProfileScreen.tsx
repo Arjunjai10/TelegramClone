@@ -1,9 +1,3 @@
-import React, { useState } from 'react';
-import {
-    View,
-    Text,
-    TextInput,
-    TouchableOpacity,
     StyleSheet,
     ScrollView,
     Alert,
@@ -21,6 +15,7 @@ import { storageService } from '../../services/storageService';
 import Avatar from '../../components/common/Avatar';
 
 const EditProfileScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation();
     const { user, setUser } = useAuthStore();
 
@@ -80,14 +75,14 @@ const EditProfileScreen: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.headerButton}
                     onPress={() => navigation.goBack()}>
                     <Icon name="close" size={24} color={Colors.white} />
-                </TouchableOpacity>
+                </Pressable>
                 <Text style={styles.headerTitle}>Edit Profile</Text>
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.headerButton}
                     onPress={handleSave}
                     disabled={isLoading}>
@@ -96,17 +91,17 @@ const EditProfileScreen: React.FC = () => {
                     ) : (
                         <Icon name="checkmark" size={26} color={Colors.white} />
                     )}
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             <ScrollView
                 contentContainerStyle={styles.scrollContent}
                 keyboardShouldPersistTaps="handled">
                 {/* Avatar */}
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.avatarContainer}
                     onPress={handlePickAvatar}
-                    activeOpacity={0.8}>
+                    >
                     <Avatar
                         uri={avatarUri}
                         name={displayName || '?'}
@@ -115,7 +110,7 @@ const EditProfileScreen: React.FC = () => {
                     <View style={styles.cameraIcon}>
                         <Icon name="camera" size={18} color={Colors.white} />
                     </View>
-                </TouchableOpacity>
+                </Pressable>
 
                 {/* Form */}
                 <View style={styles.form}>
@@ -168,7 +163,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: Colors.headerBg,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         paddingBottom: 12,
         paddingHorizontal: Spacing.sm,
     },

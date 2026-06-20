@@ -2,7 +2,7 @@ import React, { useState, useRef, useEffect } from 'react';
 import {
     View,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
     Platform,
     Animated,
@@ -71,9 +71,9 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, onAttachPress, onTy
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity style={styles.iconButton} onPress={onAttachPress} activeOpacity={0.6}>
+            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.iconButton} onPress={onAttachPress} >
                 <Icon name="add" size={26} color={Colors.textSecondary} />
-            </TouchableOpacity>
+            </Pressable>
 
             <View style={styles.inputWrapper}>
                 <TextInput
@@ -90,16 +90,16 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, onAttachPress, onTy
                     onSubmitEditing={enterIsSend ? handleSend : undefined}
                     blurOnSubmit={false}
                 />
-                <TouchableOpacity style={styles.emojiButton} activeOpacity={0.6}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.emojiButton} >
                     <Icon name="happy-outline" size={22} color={Colors.textSecondary} />
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             <Animated.View style={{ transform: [{ scale: sendScale }] }}>
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.sendButtonInner}
                     onPress={hasText ? handleSend : undefined}
-                    activeOpacity={0.75}>
+                    >
                     {/* Mic icon — fades out when typing */}
                     <Animated.View style={[StyleSheet.absoluteFill, styles.iconAbsolute, { opacity: micOpacity }]}>
                         <Icon name="mic" size={20} color={Colors.background} />
@@ -108,7 +108,7 @@ const MessageInput: React.FC<MessageInputProps> = ({ onSend, onAttachPress, onTy
                     <Animated.View style={[StyleSheet.absoluteFill, styles.iconAbsolute, { opacity: sendOpacity }]}>
                         <Icon name="send" size={18} color={Colors.background} />
                     </Animated.View>
-                </TouchableOpacity>
+                </Pressable>
             </Animated.View>
         </View>
     );

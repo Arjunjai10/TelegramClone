@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, TouchableOpacity } from 'react-native';
+import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing } from '../../constants/theme';
@@ -7,6 +8,7 @@ import { useSettingsStore, useChatStore } from '../../store';
 import { notificationService } from '../../services/notificationService';
 
 const NotificationsScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation();
     const { notifications, updateNotifications } = useSettingsStore();
     const { chats } = useChatStore();
@@ -21,10 +23,10 @@ const NotificationsScreen: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerButton} onPress={() => navigation.goBack()}>
                     <Icon name="arrow-back" size={24} color={Colors.white} />
-                </TouchableOpacity>
+                </Pressable>
                 <Text style={styles.headerTitle}>Notifications</Text>
                 <View style={styles.headerButton} />
             </View>
@@ -106,7 +108,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: Colors.headerBg,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         paddingBottom: 12,
         paddingHorizontal: Spacing.sm,
     },

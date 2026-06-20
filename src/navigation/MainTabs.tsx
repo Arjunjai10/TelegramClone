@@ -8,7 +8,6 @@ import { Colors } from '../constants/theme';
 import ChatStack from './ChatStack';
 import ContactsStack from './ContactsStack';
 import SettingsStack from './SettingsStack';
-import ProfileStack from './ProfileStack';
 import Avatar from '../components/common/Avatar';
 import { useAuthStore } from '../store';
 
@@ -56,7 +55,7 @@ const MainTabs: React.FC = () => {
     return (
         <Tab.Navigator
             screenOptions={({ route }) => {
-                const routeName = getFocusedRouteNameFromRoute(route) ?? (route.name === 'ChatsTab' ? 'ChatList' : route.name === 'ContactsTab' ? 'Contacts' : route.name === 'SettingsTab' ? 'Settings' : 'Profile');
+                const routeName = getFocusedRouteNameFromRoute(route) ?? (route.name === 'ChatsTab' ? 'ChatList' : route.name === 'ContactsTab' ? 'Contacts' : 'Settings');
 
                 // Routes where bottom tab bar should be HIDDEN
                 const hiddenRoutes = [
@@ -124,21 +123,6 @@ const MainTabs: React.FC = () => {
                             name={focused ? 'settings' : 'settings-outline'}
                             focused={focused}
                             color={color}
-                        />
-                    ),
-                }}
-            />
-            <Tab.Screen
-                name="ProfileTab"
-                component={ProfileStack}
-                options={{
-                    tabBarLabel: 'Profile',
-                    tabBarIcon: ({ focused, color }) => (
-                        <TabIcon
-                            name="person"
-                            focused={focused}
-                            color={color}
-                            isProfile={true}
                         />
                     ),
                 }}

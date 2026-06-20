@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Image, StyleSheet, ActivityIndicator } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator } from 'react-native';
+import FastImage from 'react-native-fast-image';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Message } from '../../constants/types';
 import { Colors, Spacing, BorderRadius } from '../../constants/theme';
@@ -28,10 +29,10 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMine }) => {
                     <View style={styles.imageContainer}>
                         {!imageError ? (
                             <>
-                                <Image
+                                <FastImage
                                     source={{ uri: message.imageURL }}
                                     style={styles.image}
-                                    resizeMode="cover"
+                                    resizeMode={FastImage.resizeMode.cover}
                                     onLoad={() => setImageLoading(false)}
                                     onError={() => { setImageLoading(false); setImageError(true); }}
                                 />

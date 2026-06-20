@@ -1,5 +1,5 @@
 import React from 'react';
-import { View, Text, TouchableOpacity, StyleSheet } from 'react-native';
+import { View, Text, Pressable, StyleSheet } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, BorderRadius, Spacing } from '../../constants/theme';
 
@@ -28,10 +28,10 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
 
     return (
         <>
-            <TouchableOpacity
+            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                 style={styles.container}
                 onPress={onPress}
-                activeOpacity={0.65}
+                
                 disabled={!onPress}>
                 <View style={[styles.iconContainer, { backgroundColor: color + '18' }]}>
                     <Icon name={icon} size={20} color={color} />
@@ -47,7 +47,7 @@ const SettingsItem: React.FC<SettingsItemProps> = ({
                 {rightElement || (showChevron && onPress && (
                     <Icon name="chevron-forward" size={17} color={Colors.textTertiary} />
                 ))}
-            </TouchableOpacity>
+            </Pressable>
             <View style={styles.divider} />
         </>
     );

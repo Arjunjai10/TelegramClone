@@ -4,7 +4,7 @@ import {
     Text,
     FlatList,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
     ActivityIndicator,
 } from 'react-native';
@@ -66,10 +66,10 @@ const NewChatScreen: React.FC = () => {
     };
 
     const renderItem = ({ item }: { item: User }) => (
-        <TouchableOpacity
+        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
             style={styles.userItem}
             onPress={() => handleUserPress(item)}
-            activeOpacity={0.6}>
+            >
             <Avatar
                 uri={item.photoURL}
                 name={item.displayName}
@@ -81,7 +81,7 @@ const NewChatScreen: React.FC = () => {
                 <Text style={styles.userName}>{item.displayName}</Text>
                 <Text style={styles.userPhone}>{item.phoneNumber}</Text>
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 
     return (

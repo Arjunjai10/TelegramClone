@@ -4,7 +4,7 @@ import {
     Text,
     FlatList,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
     RefreshControl,
     ScrollView,
@@ -128,12 +128,12 @@ const ChatListScreen: React.FC = () => {
     ) => {
         const scale = progress.interpolate({ inputRange: [0, 1], outputRange: [0.7, 1], extrapolate: 'clamp' });
         return (
-            <TouchableOpacity style={styles.deleteAction} onPress={() => handleDeleteChat(chat)}>
+            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.deleteAction} onPress={() => handleDeleteChat(chat)}>
                 <Animated.View style={{ transform: [{ scale }], alignItems: 'center' }}>
                     <Icon name="trash-outline" size={20} color="white" />
                     <Text style={styles.deleteText}>Delete</Text>
                 </Animated.View>
-            </TouchableOpacity>
+            </Pressable>
         );
     };
 
@@ -184,12 +184,12 @@ const ChatListScreen: React.FC = () => {
                     <Text style={styles.headerTitle}>Messages</Text>
                 </View>
                 <View style={styles.headerRight}>
-                    <TouchableOpacity style={styles.headerAction} onPress={() => searchInputRef.current?.focus()}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerAction} onPress={() => searchInputRef.current?.focus()}>
                         <Icon name="search" size={21} color={Colors.textSecondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.headerAction} onPress={() => setActionSheetVisible(true)}>
+                    </Pressable>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerAction} onPress={() => setActionSheetVisible(true)}>
                         <Icon name="ellipsis-horizontal" size={21} color={Colors.textSecondary} />
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             </View>
 
@@ -214,9 +214,9 @@ const ChatListScreen: React.FC = () => {
                         selectionColor={Colors.primary}
                     />
                     {searchQuery.length > 0 && (
-                        <TouchableOpacity onPress={() => setSearchQuery('')} style={{ paddingRight: 12 }}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} onPress={() => setSearchQuery('')} style={{ paddingRight: 12 }}>
                             <Icon name="close-circle" size={16} color={Colors.textTertiary} />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                 </View>
             </View>
@@ -227,11 +227,11 @@ const ChatListScreen: React.FC = () => {
                     {filterTabs.map((tab) => {
                         const isActive = filterType === tab.key;
                         return (
-                            <TouchableOpacity
+                            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                                 key={tab.key}
                                 style={[styles.filterTab, isActive && styles.filterTabActive]}
                                 onPress={() => setFilterType(tab.key)}
-                                activeOpacity={0.7}>
+                                >
                                 <Text style={[styles.filterText, isActive && styles.filterTextActive]}>
                                     {tab.label}
                                 </Text>
@@ -242,7 +242,7 @@ const ChatListScreen: React.FC = () => {
                                         </Text>
                                     </View>
                                 )}
-                            </TouchableOpacity>
+                            </Pressable>
                         );
                     })}
                 </ScrollView>
@@ -263,32 +263,32 @@ const ChatListScreen: React.FC = () => {
 
             {/* Compose FAB */}
             <Animated.View style={[styles.fabWrapper, { transform: [{ scale: fabScale }] }]}>
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.fab}
                     onPress={() => navigation.navigate('NewChat')}
-                    activeOpacity={0.85}>
+                    >
                     <Icon name="create-outline" size={24} color={Colors.background} />
-                </TouchableOpacity>
+                </Pressable>
             </Animated.View>
 
             {/* Global Header Action Sheet */}
             {actionSheetVisible && (
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setActionSheetVisible(false)} />
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.modalDismissArea} onPress={() => setActionSheetVisible(false)} />
                     <View style={styles.bottomSheet}>
                         <View style={styles.sheetHandle} />
-                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Group creation in development'); }}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Group creation in development'); }}>
                             <View style={styles.sheetActionIconContainer}><Icon name="people-outline" size={22} color={Colors.textPrimary} /></View>
                             <Text style={styles.sheetActionText}>New Group</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Secret Chats in development'); }}>
+                        </Pressable>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Secret Chats in development'); }}>
                             <View style={[styles.sheetActionIconContainer, { backgroundColor: Colors.primaryDim }]}>
                                 <Icon name="lock-closed-outline" size={22} color={Colors.primary} />
                             </View>
                             <Text style={styles.sheetActionText}>New Secret Chat</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                         <View style={styles.sheetDivider} />
-                        <TouchableOpacity style={styles.sheetActionRow} onPress={async () => {
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.sheetActionRow} onPress={async () => {
                             setActionSheetVisible(false);
                             const unreadChats = chats.filter(c => c.unreadCount > 0);
                             if (unreadChats.length === 0) {
@@ -301,7 +301,7 @@ const ChatListScreen: React.FC = () => {
                         }}>
                             <View style={styles.sheetActionIconContainer}><Icon name="checkmark-done-outline" size={22} color={Colors.textPrimary} /></View>
                             <Text style={styles.sheetActionText}>Mark All as Read</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             )}
@@ -309,7 +309,7 @@ const ChatListScreen: React.FC = () => {
             {/* Specific Chat Context Menu Sheet */}
             {chatContextMenu.visible && chatContextMenu.chat && (
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setChatContextMenu({ visible: false, chat: null })} />
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.modalDismissArea} onPress={() => setChatContextMenu({ visible: false, chat: null })} />
                     <View style={styles.bottomSheet}>
                         <View style={styles.sheetHandle} />
 
@@ -317,32 +317,32 @@ const ChatListScreen: React.FC = () => {
                             <Text style={styles.contextTitle} numberOfLines={1}>{chatContextMenu.chat.otherUser?.displayName || 'Chat Options'}</Text>
                         </View>
 
-                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => handlePinMuteToggle('pin')}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.sheetActionRow} onPress={() => handlePinMuteToggle('pin')}>
                             <View style={styles.sheetActionIconContainer}>
                                 <Icon name={(chatSettings.pinnedChats || []).includes(chatContextMenu.chat.id) ? "pin" : "pin-outline"} size={22} color={Colors.textPrimary} />
                             </View>
                             <Text style={styles.sheetActionText}>
                                 {(chatSettings.pinnedChats || []).includes(chatContextMenu.chat.id) ? "Unpin from Top" : "Pin to Top"}
                             </Text>
-                        </TouchableOpacity>
+                        </Pressable>
 
-                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => handlePinMuteToggle('mute')}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.sheetActionRow} onPress={() => handlePinMuteToggle('mute')}>
                             <View style={styles.sheetActionIconContainer}>
                                 <Icon name={(chatSettings.mutedChats || []).includes(chatContextMenu.chat.id) ? "volume-high-outline" : "volume-mute-outline"} size={22} color={Colors.textPrimary} />
                             </View>
                             <Text style={styles.sheetActionText}>
                                 {(chatSettings.mutedChats || []).includes(chatContextMenu.chat.id) ? "Unmute Notifications" : "Mute Notifications"}
                             </Text>
-                        </TouchableOpacity>
+                        </Pressable>
 
                         <View style={styles.sheetDivider} />
 
-                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => handleDeleteChat(chatContextMenu.chat!)}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.sheetActionRow} onPress={() => handleDeleteChat(chatContextMenu.chat!)}>
                             <View style={[styles.sheetActionIconContainer, { backgroundColor: Colors.dangerDim }]}>
                                 <Icon name="trash-outline" size={22} color={Colors.error} />
                             </View>
                             <Text style={[styles.sheetActionText, { color: Colors.error }]}>Delete Chat</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             )}

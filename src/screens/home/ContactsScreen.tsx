@@ -4,7 +4,7 @@ import {
     Text,
     FlatList,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
     StatusBar,
     Platform,
@@ -26,9 +26,10 @@ import Avatar from '../../components/common/Avatar';
 import { format as formatTime } from 'date-fns';
 import { ChatStackParamList } from '../../constants/types';
 
-const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10;
+
 
 const ContactsScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation<StackNavigationProp<ChatStackParamList>>();
     const { user } = useAuthStore();
     const { createChat } = useChatStore();
@@ -157,10 +158,10 @@ const ContactsScreen: React.FC = () => {
     };
 
     const renderContact = (contact: User) => (
-        <TouchableOpacity
+        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
             key={contact.id}
             style={styles.contactItem}
-            activeOpacity={0.6}
+            
             onPress={() => handleContactPress(contact)}>
             <Avatar
                 uri={contact.photoURL}
@@ -174,7 +175,7 @@ const ContactsScreen: React.FC = () => {
                     {formatLastSeen(contact)}
                 </Text>
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 
     const renderEmpty = () => (
@@ -184,9 +185,9 @@ const ContactsScreen: React.FC = () => {
             <Text style={styles.emptySubtitle}>
                 Invite your friends to Telegram or wait for them to join!
             </Text>
-            <TouchableOpacity style={styles.refreshButton} onPress={loadContacts}>
+            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.refreshButton} onPress={loadContacts}>
                 <Text style={styles.refreshButtonText}>Sync Contacts</Text>
-            </TouchableOpacity>
+            </Pressable>
         </View>
     );
 
@@ -213,19 +214,19 @@ const ContactsScreen: React.FC = () => {
         <View>
             {/* Action Cards */}
             <View style={styles.actionCard}>
-                <TouchableOpacity style={styles.actionItem} onPress={handleInviteFriends}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.actionItem} onPress={handleInviteFriends}>
                     <View style={[styles.actionIconContainer, { backgroundColor: '#2AABEE' }]}>
                         <Icon name="person-add" size={20} color={Colors.white} />
                     </View>
                     <Text style={styles.actionText}>Invite Friends</Text>
-                </TouchableOpacity>
+                </Pressable>
                 <View style={styles.actionDivider} />
-                <TouchableOpacity style={styles.actionItem} onPress={handleRecentCalls}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.actionItem} onPress={handleRecentCalls}>
                     <View style={[styles.actionIconContainer, { backgroundColor: '#4DCD5E' }]}>
                         <Icon name="call" size={20} color={Colors.white} />
                     </View>
                     <Text style={styles.actionText}>Recent calls</Text>
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             {/* Section Header */}
@@ -238,11 +239,11 @@ const ContactsScreen: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
                 <Text style={styles.headerTitle}>Contacts</Text>
-                <TouchableOpacity style={styles.headerAction} onPress={loadContacts}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerAction} onPress={loadContacts}>
                     <Icon name="refresh-outline" size={24} color={Colors.white} />
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             {/* Search */}
@@ -271,9 +272,9 @@ const ContactsScreen: React.FC = () => {
             />
 
             {/* FAB */}
-            <TouchableOpacity style={styles.fab} onPress={() => navigation.navigate('NewChat')}>
+            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.fab} onPress={() => navigation.navigate('NewChat')}>
                 <Icon name="person-add" size={24} color={Colors.white} />
-            </TouchableOpacity>
+            </Pressable>
         </View>
     );
 };
@@ -284,7 +285,6 @@ const styles = StyleSheet.create({
         backgroundColor: Colors.background,
     },
     header: {
-        height: Platform.OS === 'ios' ? 88 : 56 + (StatusBar.currentHeight || 24),
         paddingTop: STATUSBAR_HEIGHT,
         flexDirection: 'row',
         alignItems: 'center',

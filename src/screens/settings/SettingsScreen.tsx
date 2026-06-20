@@ -1,9 +1,10 @@
 import React from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
     View,
     Text,
     ScrollView,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
     Alert,
     StatusBar,
@@ -34,6 +35,7 @@ interface SettingsSection {
 }
 
 const SettingsScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation<StackNavigationProp<SettingsStackParamList>>();
     const { user, signOut } = useAuthStore();
 
@@ -116,28 +118,28 @@ const SettingsScreen: React.FC = () => {
             <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
 
             {/* Header */}
-            <View style={styles.header}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
                 <Text style={styles.headerTitle}>Settings</Text>
-                <TouchableOpacity style={styles.headerIcon}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerIcon}>
                     <Icon name="ellipsis-horizontal" size={21} color={Colors.textSecondary} />
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
                 {/* Profile Card */}
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.profileCard}
                     onPress={() => navigation.navigate('EditProfile')}
-                    activeOpacity={0.75}>
+                    >
                     {/* Ambient glow */}
                     <View style={styles.cardGlow} />
 
                     <View style={styles.avatarWrapper}>
                         <Avatar uri={user?.photoURL} name={user?.displayName || 'User'} size={72} />
-                        <TouchableOpacity style={styles.cameraButton} onPress={handleChangeAvatar}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.cameraButton} onPress={handleChangeAvatar}>
                             <Icon name="camera" size={14} color={Colors.background} />
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     <View style={styles.profileInfo}>
@@ -153,7 +155,7 @@ const SettingsScreen: React.FC = () => {
                     </View>
 
                     <Icon name="chevron-forward" size={18} color={Colors.textTertiary} />
-                </TouchableOpacity>
+                </Pressable>
 
                 {/* Account Section */}
                 <Text style={styles.sectionLabel}>ACCOUNT</Text>
@@ -190,10 +192,10 @@ const SettingsScreen: React.FC = () => {
                 </View>
 
                 {/* Sign Out */}
-                <TouchableOpacity style={styles.signOutButton} onPress={handleSignOut} activeOpacity={0.8}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.signOutButton} onPress={handleSignOut} >
                     <Icon name="log-out-outline" size={18} color={Colors.danger} />
                     <Text style={styles.signOutText}>Sign Out</Text>
-                </TouchableOpacity>
+                </Pressable>
 
                 {/* Version */}
                 <Text style={styles.version}>TelegramClone v1.0</Text>
@@ -206,8 +208,6 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: Colors.background },
 
     header: {
-        height: Platform.OS === 'ios' ? 88 : 56 + (StatusBar.currentHeight || 24),
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         flexDirection: 'row',
         alignItems: 'center',
         justifyContent: 'space-between',

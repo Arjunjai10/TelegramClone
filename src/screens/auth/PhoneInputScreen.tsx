@@ -3,7 +3,7 @@ import {
     View,
     Text,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
@@ -96,9 +96,9 @@ const PhoneInputScreen: React.FC = () => {
 
                 {/* Header nav */}
                 <View style={styles.header}>
-                    <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backButton}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} onPress={() => navigation.goBack()} style={styles.backButton}>
                         <Icon name="chevron-back" size={26} color={Colors.textPrimary} />
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
 
                 <Animated.View
@@ -152,11 +152,11 @@ const PhoneInputScreen: React.FC = () => {
 
                     {/* Next button */}
                     <Animated.View style={{ transform: [{ scale: scaleBtn }] }}>
-                        <TouchableOpacity
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                             style={[styles.nextButton, isLoading && styles.nextButtonDisabled]}
                             onPress={handleNext}
                             disabled={isLoading}
-                            activeOpacity={0.85}>
+                            >
                             {isLoading ? (
                                 <ActivityIndicator color={Colors.background} />
                             ) : (
@@ -165,7 +165,7 @@ const PhoneInputScreen: React.FC = () => {
                                     <Icon name="arrow-forward" size={18} color={Colors.background} style={{ marginLeft: 8 }} />
                                 </>
                             )}
-                        </TouchableOpacity>
+                        </Pressable>
                     </Animated.View>
                 </Animated.View>
             </KeyboardAvoidingView>

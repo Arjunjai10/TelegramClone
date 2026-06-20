@@ -3,7 +3,7 @@ import {
     View,
     Text,
     TextInput,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
     KeyboardAvoidingView,
     Platform,
@@ -104,10 +104,10 @@ const ProfileSetupScreen: React.FC = () => {
                 </View>
 
                 {/* Avatar */}
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.avatarContainer}
                     onPress={handlePickAvatar}
-                    activeOpacity={0.8}>
+                    >
                     <Avatar
                         uri={avatarUri}
                         name={firstName || '?'}
@@ -116,7 +116,7 @@ const ProfileSetupScreen: React.FC = () => {
                     <View style={styles.cameraIcon}>
                         <Icon name="camera" size={18} color={Colors.white} />
                     </View>
-                </TouchableOpacity>
+                </Pressable>
 
                 {/* Form */}
                 <View style={styles.form}>
@@ -158,17 +158,17 @@ const ProfileSetupScreen: React.FC = () => {
                 </View>
 
                 {/* Complete Button */}
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={[styles.completeButton, isLoading && styles.buttonDisabled]}
                     onPress={handleComplete}
                     disabled={isLoading}
-                    activeOpacity={0.8}>
+                    >
                     {isLoading ? (
                         <ActivityIndicator color={Colors.white} />
                     ) : (
                         <Text style={styles.completeText}>START MESSAGING</Text>
                     )}
-                </TouchableOpacity>
+                </Pressable>
             </ScrollView>
         </KeyboardAvoidingView>
     );

@@ -4,7 +4,7 @@ import {
     Text,
     FlatList,
     StyleSheet,
-    TouchableOpacity,
+    Pressable,
     KeyboardAvoidingView,
     Platform,
     StatusBar,
@@ -27,6 +27,7 @@ type NavProp = StackNavigationProp<ChatStackParamList, 'Chat'>;
 type RoutePropType = RouteProp<ChatStackParamList, 'Chat'>;
 
 const ChatScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation<NavProp>();
     const route = useRoute<RoutePropType>();
     const { chatId, otherUser } = route.params;
@@ -103,15 +104,15 @@ const ChatScreen: React.FC = () => {
             <StatusBar barStyle="light-content" backgroundColor={Colors.surface} />
 
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.backButton} onPress={() => navigation.goBack()}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.backButton} onPress={() => navigation.goBack()}>
                     <Icon name="chevron-back" size={26} color={Colors.textPrimary} />
-                </TouchableOpacity>
+                </Pressable>
 
-                <TouchableOpacity
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                     style={styles.headerInfo}
                     onPress={() => (navigation as any).navigate('ContactInfo', { userId: otherUser.id })}
-                    activeOpacity={0.75}>
+                    >
                     <Avatar
                         uri={otherUser.photoURL}
                         name={otherUser.displayName}
@@ -130,15 +131,15 @@ const ChatScreen: React.FC = () => {
                             {statusText}
                         </Text>
                     </View>
-                </TouchableOpacity>
+                </Pressable>
 
                 <View style={styles.headerActions}>
-                    <TouchableOpacity style={styles.headerAction}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerAction}>
                         <Icon name="call-outline" size={20} color={Colors.textSecondary} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.headerAction}>
+                    </Pressable>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerAction}>
                         <Icon name="ellipsis-vertical" size={20} color={Colors.textSecondary} />
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             </View>
 
@@ -167,7 +168,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.surface,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         paddingBottom: 12,
         paddingHorizontal: 6,
         borderBottomWidth: 1,

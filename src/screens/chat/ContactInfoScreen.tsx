@@ -4,7 +4,7 @@ import {
     Text,
     ScrollView,
     StyleSheet,
-    TouchableOpacity,
+    Pressable,
     Platform,
     StatusBar,
     Alert,
@@ -58,6 +58,7 @@ const infoStyles = StyleSheet.create({
 });
 
 const ContactInfoScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation<NavProp>();
     const route = useRoute<RoutePropType>();
     const { userId } = route.params;
@@ -144,14 +145,14 @@ const ContactInfoScreen: React.FC = () => {
             <StatusBar barStyle="light-content" backgroundColor={Colors.surface} />
 
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.headerBtn} onPress={() => navigation.goBack()}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerBtn} onPress={() => navigation.goBack()}>
                     <Icon name="chevron-back" size={26} color={Colors.textPrimary} />
-                </TouchableOpacity>
+                </Pressable>
                 <Text style={styles.headerTitle}>Contact Info</Text>
-                <TouchableOpacity style={styles.headerBtn} onPress={() => setActionSheetVisible(true)}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerBtn} onPress={() => setActionSheetVisible(true)}>
                     <Icon name="ellipsis-vertical" size={20} color={Colors.textSecondary} />
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             <ScrollView
@@ -180,12 +181,12 @@ const ContactInfoScreen: React.FC = () => {
                         { icon: 'call-outline', label: 'Call', action: () => Alert.alert('Coming Soon', 'Voice Calls in development') },
                         { icon: 'videocam-outline', label: 'Video', action: () => Alert.alert('Coming Soon', 'Video Calls in development') },
                     ].map((a) => (
-                        <TouchableOpacity key={a.label} style={styles.quickBtn} activeOpacity={0.75} onPress={a.action}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} key={a.label} style={styles.quickBtn}  onPress={a.action}>
                             <View style={styles.quickIconBg}>
                                 <Icon name={a.icon} size={20} color={Colors.primary} />
                             </View>
                             <Text style={styles.quickLabel}>{a.label}</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     ))}
                 </View>
 
@@ -233,13 +234,13 @@ const ContactInfoScreen: React.FC = () => {
                         },
                     ].map((item, i, arr) => (
                         <React.Fragment key={item.label}>
-                            <TouchableOpacity style={styles.actionRow} activeOpacity={0.7} onPress={item.action}>
+                            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.actionRow}  onPress={item.action}>
                                 <View style={styles.actionIconBg}>
                                     <Icon name={item.icon} size={16} color={Colors.primary} />
                                 </View>
                                 <Text style={[styles.actionLabel, { color: item.color }]}>{item.label}</Text>
                                 <Icon name="chevron-forward" size={16} color={Colors.textTertiary} />
-                            </TouchableOpacity>
+                            </Pressable>
                             {i < arr.length - 1 && <View style={styles.rowDivider} />}
                         </React.Fragment>
                     ))}
@@ -252,14 +253,14 @@ const ContactInfoScreen: React.FC = () => {
                         { icon: 'trash-outline', label: 'Delete Chat', danger: true, onPress: handleDeleteChat },
                     ].map((item, i, arr) => (
                         <React.Fragment key={item.label}>
-                            <TouchableOpacity style={styles.actionRow} activeOpacity={0.7} onPress={item.onPress}>
+                            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.actionRow}  onPress={item.onPress}>
                                 <View style={[styles.actionIconBg, item.danger && styles.dangerIconBg]}>
                                     <Icon name={item.icon} size={16} color={item.danger ? Colors.danger : Colors.primary} />
                                 </View>
                                 <Text style={[styles.actionLabel, item.danger && styles.dangerLabel]}>
                                     {item.label}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                             {i < arr.length - 1 && <View style={styles.rowDivider} />}
                         </React.Fragment>
                     ))}
@@ -269,15 +270,15 @@ const ContactInfoScreen: React.FC = () => {
             {/* Header Action Sheet */}
             {actionSheetVisible && (
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setActionSheetVisible(false)} />
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.modalDismissArea} onPress={() => setActionSheetVisible(false)} />
                     <View style={styles.bottomSheet}>
                         <View style={styles.sheetHandle} />
-                        <TouchableOpacity style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Share Contact in development'); }}>
+                        <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.sheetActionRow} onPress={() => { setActionSheetVisible(false); Alert.alert('Coming Soon', 'Share Contact in development'); }}>
                             <View style={styles.sheetActionIconContainer}>
                                 <Icon name="share-outline" size={22} color={Colors.textPrimary} />
                             </View>
                             <Text style={styles.sheetActionText}>Share Contact</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             )}
@@ -292,7 +293,6 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         backgroundColor: Colors.surface,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 8,
         paddingBottom: 10,
         paddingHorizontal: 4,
         borderBottomWidth: 1,

@@ -77,7 +77,6 @@ export type MainTabParamList = {
     ChatsTab: undefined;
     ContactsTab: undefined;
     SettingsTab: undefined;
-    ProfileTab: undefined;
 };
 
 export type ChatStackParamList = {
@@ -102,13 +101,4 @@ export type SettingsStackParamList = {
     Language: undefined;
 };
 
-export type ProfileStackParamList = {
-    Profile: undefined;
-    EditProfile: undefined;
-    Settings: undefined;
-    Notifications: undefined;
-    PrivacySecurity: undefined;
-    ChatSettings: undefined;
-    DataStorage: undefined;
-    Language: undefined;
-};
+

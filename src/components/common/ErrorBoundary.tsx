@@ -2,7 +2,7 @@ import React, { Component, ErrorInfo, ReactNode } from 'react';
 import {
     View,
     Text,
-    TouchableOpacity,
+    Pressable,
     StyleSheet,
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
@@ -51,12 +51,12 @@ class ErrorBoundary extends Component<Props, State> {
                         The app encountered an unexpected error.{'\n'}
                         Please try again.
                     </Text>
-                    <TouchableOpacity
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                         style={styles.retryButton}
                         onPress={this.handleRetry}
-                        activeOpacity={0.8}>
+                        >
                         <Text style={styles.retryText}>Try Again</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             );
         }

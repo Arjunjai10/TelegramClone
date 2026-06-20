@@ -1,5 +1,6 @@
 import React, { useState } from 'react';
-import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, TouchableOpacity } from 'react-native';
+import { View, Text, Switch, StyleSheet, ScrollView, Platform, StatusBar, Pressable } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { launchImageLibrary } from 'react-native-image-picker';
@@ -9,6 +10,7 @@ import { useSettingsStore } from '../../store';
 const TEXT_SIZES = ['12', '14', '16', '18', '20'];
 
 const ChatSettingsScreen: React.FC = () => {
+    const insets = useSafeAreaInsets();
     const navigation = useNavigation();
     const { chat, updateChat } = useSettingsStore();
 
@@ -45,10 +47,10 @@ const ChatSettingsScreen: React.FC = () => {
     return (
         <View style={styles.container}>
             {/* Header */}
-            <View style={styles.header}>
-                <TouchableOpacity style={styles.headerButton} onPress={() => navigation.goBack()}>
+            <View style={[styles.header, { paddingTop: insets.top + 10, height: (Platform.OS === 'ios' ? 44 : 56) + insets.top }]}>
+                <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.headerButton} onPress={() => navigation.goBack()}>
                     <Icon name="arrow-back" size={24} color={Colors.white} />
-                </TouchableOpacity>
+                </Pressable>
                 <Text style={styles.headerTitle}>Chat Settings</Text>
                 <View style={styles.headerButton} />
             </View>
@@ -56,12 +58,12 @@ const ChatSettingsScreen: React.FC = () => {
             <ScrollView contentContainerStyle={styles.scrollContent}>
                 <Text style={styles.sectionTitle}>SETTINGS</Text>
                 <View style={styles.sectionContainer}>
-                    <TouchableOpacity style={styles.settingRow} onPress={() => setModalVisible(true)}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow} onPress={() => setModalVisible(true)}>
                         <Text style={styles.settingLabel}>Message Text Size</Text>
                         <Text style={styles.settingValue}>{textSize} <Icon name="chevron-forward" color={Colors.textSecondary} /></Text>
-                    </TouchableOpacity>
+                    </Pressable>
                     <View style={styles.divider} />
-                    <TouchableOpacity style={styles.settingRow} onPress={handleChangeWallpaper}>
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.settingRow} onPress={handleChangeWallpaper}>
                         <Text style={styles.settingLabel}>Change Chat Wallpaper</Text>
                         <View style={styles.wallpaperRight}>
                             {wallpaper ? (
@@ -70,7 +72,7 @@ const ChatSettingsScreen: React.FC = () => {
                                 <Icon name="chevron-forward" color={Colors.textSecondary} />
                             )}
                         </View>
-                    </TouchableOpacity>
+                    </Pressable>
                     <View style={styles.divider} />
                     <View style={styles.settingRow}>
                         <Text style={styles.settingLabel}>Enter is Send</Text>
@@ -88,16 +90,16 @@ const ChatSettingsScreen: React.FC = () => {
             {/* Text Size Selection Modal */}
             {modalVisible && (
                 <View style={styles.modalOverlay}>
-                    <TouchableOpacity style={styles.modalDismissArea} onPress={() => setModalVisible(false)} />
+                    <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} style={styles.modalDismissArea} onPress={() => setModalVisible(false)} />
                     <View style={styles.bottomSheet}>
                         <View style={styles.sheetHeader}>
                             <Text style={styles.sheetTitle}>Message Text Size</Text>
-                            <TouchableOpacity onPress={() => setModalVisible(false)}>
+                            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }} onPress={() => setModalVisible(false)}>
                                 <Icon name="close-circle" size={24} color={Colors.textSecondary} />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                         {TEXT_SIZES.map((size, index) => (
-                            <TouchableOpacity
+                            <Pressable android_ripple={{ color: 'rgba(0, 0, 0, 0.1)' }}
                                 key={size}
                                 style={[styles.sheetOption, index !== TEXT_SIZES.length - 1 && styles.sheetOptionBorder]}
                                 onPress={() => handleSelectTextSize(size)}
@@ -111,7 +113,7 @@ const ChatSettingsScreen: React.FC = () => {
                                 {textSize === size && (
                                     <Icon name="checkmark" size={20} color={Colors.primary} />
                                 )}
-                            </TouchableOpacity>
+                            </Pressable>
                         ))}
                     </View>
                 </View>
@@ -130,7 +132,6 @@ const styles = StyleSheet.create({
         justifyContent: 'space-between',
         alignItems: 'center',
         backgroundColor: Colors.headerBg,
-        paddingTop: Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10,
         paddingBottom: 12,
         paddingHorizontal: Spacing.sm,
     },
