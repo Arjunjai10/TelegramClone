@@ -163,4 +163,4 @@ const styles = StyleSheet.create({
     unreadCount: { color: Colors.background, fontSize: 11, fontWeight: '800' },
 });
 
-export default ChatListItem;
+export default React.memo(ChatListItem);

@@ -8,21 +8,23 @@ import {
     Alert,
     Platform,
     StatusBar,
-    SafeAreaView,
     Share,
 } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, BorderRadius, Spacing, Typography } from '../../constants/theme';
 import { useAuthStore } from '../../store';
 import Avatar from '../../components/common/Avatar';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { storageService } from '../../services/storageService';
 import { userService } from '../../services/userService';
+import { ProfileStackParamList } from '../../constants/types';
 
 const ProfileScreen: React.FC = () => {
     const { user, setUser, signOut } = useAuthStore();
-    const navigation = useNavigation<any>();
+    const navigation = useNavigation<StackNavigationProp<ProfileStackParamList>>();
     const [isLoading, setIsLoading] = useState(false);
 
     // Modal States

@@ -1,4 +1,6 @@
 {
   "name": "TelegramClone",
-  "displayName": "VChat"
+  "displayName": "VChat",
+  "version": "1.0.0",
+  "scheme": "vchat"
 }

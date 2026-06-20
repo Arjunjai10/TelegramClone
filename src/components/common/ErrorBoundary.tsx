@@ -7,6 +7,7 @@ import {
 } from 'react-native';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
+import crashlytics from '@react-native-firebase/crashlytics';
 
 interface Props {
     children: ReactNode;
@@ -29,6 +30,9 @@ class ErrorBoundary extends Component<Props, State> {
 
     componentDidCatch(error: Error, errorInfo: ErrorInfo) {
         console.error('App Error:', error, errorInfo);
+        // Report to Firebase Crashlytics
+        crashlytics().recordError(error);
+        crashlytics().log(`componentStack: ${errorInfo.componentStack}`);
     }
 
     handleRetry = () => {

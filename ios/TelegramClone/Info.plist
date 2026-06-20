@@ -36,6 +36,24 @@
 	</dict>
 	<key>NSLocationWhenInUseUsageDescription</key>
 	<string></string>
+	<!-- vchat:// deep link scheme for profile sharing -->
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>vchat</string>
+			</array>
+			<key>CFBundleURLName</key>
+			<string>com.vchat.deeplink</string>
+		</dict>
+	</array>
+	<!-- Required for launchImageLibrary (react-native-image-picker) -->
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>VChat needs access to your photo library to set your profile photo and send images.</string>
+	<!-- Required for react-native-contacts -->
+	<key>NSContactsUsageDescription</key>
+	<string>VChat needs access to your contacts to help you find friends who are already on VChat.</string>
 	<key>UILaunchStoryboardName</key>
 	<string>LaunchScreen</string>
 	<key>UIRequiredDeviceCapabilities</key>

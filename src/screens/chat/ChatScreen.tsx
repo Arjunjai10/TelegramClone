@@ -11,6 +11,7 @@ import {
     Alert,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { ChatStackParamList, Message } from '../../constants/types';
 import { Colors, BorderRadius } from '../../constants/theme';
@@ -22,10 +23,11 @@ import MessageBubble from '../../components/chat/MessageBubble';
 import MessageInput from '../../components/chat/MessageInput';
 import Avatar from '../../components/common/Avatar';
 
+type NavProp = StackNavigationProp<ChatStackParamList, 'Chat'>;
 type RoutePropType = RouteProp<ChatStackParamList, 'Chat'>;
 
 const ChatScreen: React.FC = () => {
-    const navigation = useNavigation();
+    const navigation = useNavigation<NavProp>();
     const route = useRoute<RoutePropType>();
     const { chatId, otherUser } = route.params;
     const { user } = useAuthStore();
@@ -57,9 +59,9 @@ const ChatScreen: React.FC = () => {
 
     const handleSend = useCallback((text: string) => {
         if (!user?.id) return;
-        sendMessage(chatId, text, user.id);
+        sendMessage(chatId, text, user.id, otherUser.id);
         chatService.setTypingStatus(chatId, user.id, false);
-    }, [chatId, user?.id, sendMessage]);
+    }, [chatId, user?.id, otherUser.id, sendMessage]);
 
     const handleTyping = useCallback((typing: boolean) => {
         if (!user?.id) return;
@@ -76,7 +78,7 @@ const ChatScreen: React.FC = () => {
                     return;
                 }
                 if (upload.url) {
-                    sendMessage(chatId, '', user.id, 'image', upload.url);
+                    sendMessage(chatId, '', user.id, otherUser.id, 'image', upload.url);
                 }
             }
         } catch (error) {

@@ -19,6 +19,7 @@ interface ChatState {
         chatId: string,
         text: string,
         senderId: string,
+        recipientId: string,
         type?: 'text' | 'image',
         imageURL?: string,
     ) => Promise<void>;
@@ -30,8 +31,24 @@ interface ChatState {
 /**
  * In-memory user cache to prevent N+1 Firestore reads every time chats update.
  * Lives outside the store so it persists across re-renders.
+ * TTL: 5 minutes per entry — profile updates propagate within that window.
  */
-const userCache = new Map<string, User>();
+const USER_CACHE_TTL_MS = 5 * 60 * 1000; // 5 minutes
+const userCache = new Map<string, { user: User; cachedAt: number }>();
+
+const getCachedUser = (id: string): User | undefined => {
+    const entry = userCache.get(id);
+    if (!entry) return undefined;
+    if (Date.now() - entry.cachedAt > USER_CACHE_TTL_MS) {
+        userCache.delete(id);
+        return undefined;
+    }
+    return entry.user;
+};
+
+const setCachedUser = (id: string, user: User) => {
+    userCache.set(id, { user, cachedAt: Date.now() });
+};
 
 export const useChatStore = create<ChatState>((set, get) => ({
     chats: [],
@@ -50,7 +67,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
         // Collect IDs we haven't cached yet
         const uncachedIds = chats
             .map((chat) => chat.participants.find((p) => p !== currentUserId))
-            .filter((id): id is string => !!id && !userCache.has(id));
+            .filter((id): id is string => !!id && !getCachedUser(id));
 
         // Fetch uncached users in parallel (one fetch per unique uncached user)
         if (uncachedIds.length > 0) {
@@ -59,7 +76,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
                 uniqueIds.map(async (id) => {
                     try {
                         const user = await userService.getUser(id);
-                        if (user) userCache.set(id, user);
+                        if (user) setCachedUser(id, user);
                     } catch {
                         // Non-critical — chat still renders without otherUser
                     }
@@ -69,7 +86,7 @@ export const useChatStore = create<ChatState>((set, get) => ({
 
         return chats.map((chat) => {
             const otherId = chat.participants.find((p) => p !== currentUserId);
-            const otherUser = otherId ? userCache.get(otherId) : undefined;
+            const otherUser = otherId ? getCachedUser(otherId) : undefined;
             return { ...chat, otherUser };
         });
     },
@@ -120,7 +137,22 @@ export const useChatStore = create<ChatState>((set, get) => ({
         return unsubscribe;
     },
 
-    sendMessage: async (chatId, text, senderId, type = 'text', imageURL) => {
+    sendMessage: async (chatId, text, senderId, recipientId, type = 'text', imageURL) => {
+        // ---------- Optimistic UI ----------
+        // Insert a local pending message immediately so the user sees instant feedback.
+        // The Firestore onSnapshot listener will replace this with the real message.
+        const pendingId = `pending_${Date.now()}`;
+        const pendingMessage: Message = {
+            id: pendingId,
+            text,
+            senderId,
+            type,
+            read: false,
+            createdAt: null,          // null signals 'pending' to MessageBubble
+            ...(imageURL !== undefined && { imageURL }),
+        };
+        set((state) => ({ activeMessages: [pendingMessage, ...state.activeMessages] }));
+
         const messageData: Omit<Message, 'id' | 'createdAt'> = {
             text,
             senderId,
@@ -131,11 +163,14 @@ export const useChatStore = create<ChatState>((set, get) => ({
         try {
             await chatService.sendMessage(chatId, messageData);
 
-            // Atomically increment unread count for the recipient.
-            // The recipient's subscribeToChats() listener will pick this up in real-time.
-            await chatService.incrementUnreadCount(chatId);
+            // Only increment the recipient's unread count — not the sender's.
+            await chatService.incrementUnreadCount(chatId, senderId, recipientId);
         } catch (error) {
             console.error('[chatStore.sendMessage]', error);
+            // Remove the optimistic message on failure
+            set((state) => ({
+                activeMessages: state.activeMessages.filter((m) => m.id !== pendingId),
+            }));
             Alert.alert('Send Failed', 'Message could not be sent. Please check your connection and try again.');
         }
     },

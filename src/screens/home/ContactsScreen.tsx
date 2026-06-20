@@ -16,6 +16,7 @@ import {
 } from 'react-native';
 import Contacts from 'react-native-contacts';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { User } from '../../constants/types';
 import { Colors, Typography, Spacing, BorderRadius } from '../../constants/theme';
@@ -23,11 +24,12 @@ import { useAuthStore, useChatStore } from '../../store';
 import { userService } from '../../services/userService';
 import Avatar from '../../components/common/Avatar';
 import { format as formatTime } from 'date-fns';
+import { ChatStackParamList } from '../../constants/types';
 
 const STATUSBAR_HEIGHT = Platform.OS === 'ios' ? 50 : (StatusBar.currentHeight || 24) + 10;
 
 const ContactsScreen: React.FC = () => {
-    const navigation = useNavigation<any>();
+    const navigation = useNavigation<StackNavigationProp<ChatStackParamList>>();
     const { user } = useAuthStore();
     const { createChat } = useChatStore();
     const [contacts, setContacts] = useState<User[]>([]);

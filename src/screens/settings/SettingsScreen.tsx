@@ -11,6 +11,7 @@ import {
     Platform,
 } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { Colors, BorderRadius, Spacing } from '../../constants/theme';
 import { useAuthStore } from '../../store';
@@ -19,6 +20,7 @@ import SettingsItem from '../../components/settings/SettingsItem';
 import { launchImageLibrary } from 'react-native-image-picker';
 import { storageService } from '../../services/storageService';
 import { userService } from '../../services/userService';
+import { SettingsStackParamList } from '../../constants/types';
 
 const { width } = Dimensions.get('window');
 
@@ -32,7 +34,7 @@ interface SettingsSection {
 }
 
 const SettingsScreen: React.FC = () => {
-    const navigation = useNavigation<any>();
+    const navigation = useNavigation<StackNavigationProp<SettingsStackParamList>>();
     const { user, signOut } = useAuthStore();
 
     const handleSignOut = () => {

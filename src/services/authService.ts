@@ -8,11 +8,13 @@ import {
     signInWithPhoneNumber as firebaseSignInWithPhoneNumber,
 } from '@react-native-firebase/auth';
 import { GoogleSignin } from '@react-native-google-signin/google-signin';
+import Config from 'react-native-config';
 
 class AuthService {
     constructor() {
         GoogleSignin.configure({
-            webClientId: '127677600795-acf81k4tvp9f02fctalqra97rmbivlhk.apps.googleusercontent.com',
+            // Loaded from .env -> GOOGLE_WEB_CLIENT_ID (via react-native-config)
+            webClientId: Config.GOOGLE_WEB_CLIENT_ID ?? '',
         });
     }
 

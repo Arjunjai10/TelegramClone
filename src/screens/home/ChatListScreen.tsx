@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useCallback, useRef } from 'react';
+import React, { useEffect, useState, useCallback, useRef, useMemo } from 'react';
 import {
     View,
     Text,
@@ -61,25 +61,27 @@ const ChatListScreen: React.FC = () => {
         return () => unsubscribe();
     }, [user?.id, subscribeToChats]);
 
-    const filteredChats = chats
-        .filter((chat) => {
-            const matchesSearch = !searchQuery.trim() ||
-                chat.otherUser?.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
-            if (!matchesSearch) return false;
-            if (filterType === 'Unread') return chat.unreadCount > 0;
-            if (filterType === 'Groups') return chat.participants.length > 2;
-            if (filterType === 'Bots') return chat.otherUser?.isBot || false;
-            return true;
-        })
-        .sort((a, b) => {
-            // Sort pinned chats to the top
-            const aPinned = chatSettings.pinnedChats?.includes(a.id) ?? false;
-            const bPinned = chatSettings.pinnedChats?.includes(b.id) ?? false;
-            if (aPinned && !bPinned) return -1;
-            if (!aPinned && bPinned) return 1;
-            // Otherwise maintain default chronological backend sort (or handle timestamp if needed)
-            return 0;
-        });
+    const filteredChats = useMemo(() => {
+        return chats
+            .filter((chat) => {
+                const matchesSearch = !searchQuery.trim() ||
+                    chat.otherUser?.displayName?.toLowerCase().includes(searchQuery.toLowerCase());
+                if (!matchesSearch) return false;
+                if (filterType === 'Unread') return chat.unreadCount > 0;
+                if (filterType === 'Groups') return chat.participants.length > 2;
+                if (filterType === 'Bots') return chat.otherUser?.isBot || false;
+                return true;
+            })
+            .sort((a, b) => {
+                // Sort pinned chats to the top
+                const aPinned = chatSettings.pinnedChats?.includes(a.id) ?? false;
+                const bPinned = chatSettings.pinnedChats?.includes(b.id) ?? false;
+                if (aPinned && !bPinned) return -1;
+                if (!aPinned && bPinned) return 1;
+                // Otherwise maintain default chronological backend sort (or handle timestamp if needed)
+                return 0;
+            });
+    }, [chats, searchQuery, filterType, chatSettings.pinnedChats]);
 
     const unreadCount = chats.filter((c) => c.unreadCount > 0).length;
 
@@ -135,7 +137,7 @@ const ChatListScreen: React.FC = () => {
         );
     };
 
-    const renderItem = ({ item }: { item: Chat }) => {
+    const renderItem = useCallback(({ item }: { item: Chat }) => {
         const isPinned = chatSettings.pinnedChats?.includes(item.id) ?? false;
         const isMuted = chatSettings.mutedChats?.includes(item.id) ?? false;
 
@@ -150,7 +152,7 @@ const ChatListScreen: React.FC = () => {
                 />
             </Swipeable>
         );
-    };
+    }, [chatSettings.pinnedChats, chatSettings.mutedChats]);
 
     const renderEmpty = () => (
         <View style={styles.emptyContainer}>

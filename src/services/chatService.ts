@@ -9,6 +9,7 @@ import firestore, {
     where,
     orderBy,
     limit,
+    startAfter,
     onSnapshot,
     getDocs,
     deleteDoc,
@@ -167,7 +168,8 @@ class ChatService {
     }
 
     /**
-     * Listen to messages in a chat in real-time (last 50, desc order).
+     * Listen to the latest messages in a chat in real-time (last 50, desc order).
+     * Returns the unsubscribe function.
      */
     onMessagesChanged(chatId: string, callback: (messages: Message[]) => void): () => void {
         const messagesRef = collection(doc(this.chatsCollection, chatId), COLLECTIONS.MESSAGES);
@@ -196,6 +198,42 @@ class ChatService {
     }
 
     /**
+     * Load a page of older messages before a cursor (for infinite scroll / "Load earlier").
+     * @param chatId - The chat to query.
+     * @param cursor - The oldest DocumentSnapshot from the current batch.
+     * @param pageSize - How many messages to load (default 30).
+     * @returns Array of older messages (desc order) and the new cursor for the next page.
+     */
+    async loadEarlierMessages(
+        chatId: string,
+        cursor: FirebaseFirestoreTypes.QueryDocumentSnapshot,
+        pageSize = 30,
+    ): Promise<{ messages: Message[]; newCursor: FirebaseFirestoreTypes.QueryDocumentSnapshot | null }> {
+        const messagesRef = collection(doc(this.chatsCollection, chatId), COLLECTIONS.MESSAGES);
+        const q = query(
+            messagesRef,
+            orderBy('createdAt', 'desc'),
+            startAfter(cursor),
+            limit(pageSize),
+        );
+        const snapshot = await getDocs(q);
+        const messages = snapshot.docs.map((msgDoc: FirebaseFirestoreTypes.QueryDocumentSnapshot) => {
+            const data = msgDoc.data();
+            return {
+                id: msgDoc.id,
+                text: data.text ?? '',
+                senderId: data.senderId ?? '',
+                type: data.type ?? 'text',
+                imageURL: data.imageURL,
+                read: data.read ?? false,
+                createdAt: data.createdAt ?? null,
+            } as Message;
+        });
+        const newCursor = snapshot.docs.length > 0 ? snapshot.docs[snapshot.docs.length - 1] : null;
+        return { messages, newCursor };
+    }
+
+    /**
      * Mark a list of messages as read using a batch write.
      */
     async markAsRead(chatId: string, messageIds: string[]): Promise<void> {
@@ -215,10 +253,11 @@ class ChatService {
 
     /**
      * Increment the unread count for a chat document.
-     * Called when a message is sent so the recipient's unread count goes up.
+     * Only increments for the recipient (not the sender) to prevent badge flash.
      * Uses FieldValue.increment for an atomic server-side increment (no race conditions).
      */
-    async incrementUnreadCount(chatId: string): Promise<void> {
+    async incrementUnreadCount(chatId: string, senderId: string, recipientId: string): Promise<void> {
+        if (senderId === recipientId) return; // guard: never increment your own count
         try {
             await updateDoc(doc(this.chatsCollection, chatId), {
                 unreadCount: firestore.FieldValue.increment(1),
