@@ -15,6 +15,7 @@ interface MessageBubbleProps {
 const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMine }) => {
     const [imageLoading, setImageLoading] = useState(true);
     const [imageError, setImageError] = useState(false);
+    const [isExpanded, setIsExpanded] = useState(false);
     const { chat: chatSettings } = useSettingsStore();
     const fontSize = parseInt(chatSettings.textSize || '16', 10);
 
@@ -51,7 +52,11 @@ const MessageBubble: React.FC<MessageBubbleProps> = ({ message, isMine }) => {
                     </View>
                 )}
                 {message.text ? (
-                    <Text style={[styles.text, isMine ? styles.textMine : styles.textTheirs, { fontSize }]}>
+                    <Text 
+                        style={[styles.text, isMine ? styles.textMine : styles.textTheirs, { fontSize }]}
+                        numberOfLines={isExpanded ? undefined : 50}
+                        onPress={() => setIsExpanded(!isExpanded)}
+                    >
                         {message.text}
                     </Text>
                 ) : null}

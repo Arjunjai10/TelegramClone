@@ -19,6 +19,9 @@ import { useAuthStore } from '../../store';
 
 const { width, height } = Dimensions.get('window');
 
+const ORB1_OPACITY = new Animated.Value(0.12);
+const ORB2_OPACITY = new Animated.Value(0.07);
+
 const LoginScreen: React.FC = () => {
     const navigation = useNavigation<StackNavigationProp<AuthStackParamList>>();
     const { loginWithGoogle, isLoading } = useAuthStore();
@@ -63,8 +66,8 @@ const LoginScreen: React.FC = () => {
             <StatusBar barStyle="light-content" backgroundColor={Colors.background} />
 
             {/* Atmospheric orbs */}
-            <Animated.View style={[styles.orb1, { opacity: Animated.multiply(fadeOrbs, new Animated.Value(0.12)) }]} />
-            <Animated.View style={[styles.orb2, { opacity: Animated.multiply(fadeOrbs, new Animated.Value(0.07)) }]} />
+            <Animated.View style={[styles.orb1, { opacity: Animated.multiply(fadeOrbs, ORB1_OPACITY) }]} />
+            <Animated.View style={[styles.orb2, { opacity: Animated.multiply(fadeOrbs, ORB2_OPACITY) }]} />
 
             {/* Diagonal grid overlay */}
             <View style={styles.gridPattern} pointerEvents="none">

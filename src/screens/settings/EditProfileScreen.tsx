@@ -1,3 +1,10 @@
+import React, { useState } from 'react';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import {
+    View,
+    Text,
+    TextInput,
+    Pressable,
     StyleSheet,
     ScrollView,
     Alert,

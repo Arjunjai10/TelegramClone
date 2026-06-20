@@ -49,7 +49,8 @@ const ChatListScreen: React.FC = () => {
             Animated.sequence([
                 Animated.timing(fabScale, { toValue: 1.07, duration: 1400, useNativeDriver: true }),
                 Animated.timing(fabScale, { toValue: 1, duration: 1400, useNativeDriver: true }),
-            ])
+            ]),
+            { iterations: 3 }
         );
         pulse.start();
         return () => pulse.stop();

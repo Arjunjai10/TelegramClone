@@ -9,9 +9,11 @@ import {
     Platform,
     StatusBar,
     Alert,
+    ActivityIndicator,
 } from 'react-native';
 import { useNavigation, useRoute, RouteProp } from '@react-navigation/native';
 import { StackNavigationProp } from '@react-navigation/stack';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/Ionicons';
 import { ChatStackParamList, Message } from '../../constants/types';
 import { Colors, BorderRadius } from '../../constants/theme';
@@ -32,7 +34,7 @@ const ChatScreen: React.FC = () => {
     const route = useRoute<RoutePropType>();
     const { chatId, otherUser } = route.params;
     const { user } = useAuthStore();
-    const { activeMessages, subscribeToMessages, sendMessage } = useChatStore();
+    const { activeMessages, subscribeToMessages, sendMessage, isLoadingMessages } = useChatStore();
     const [isTyping, setIsTyping] = React.useState(false);
 
     useEffect(() => {
@@ -149,9 +151,24 @@ const ChatScreen: React.FC = () => {
                 keyExtractor={(item) => item.id}
                 renderItem={renderMessage}
                 inverted
-                contentContainerStyle={styles.messagesList}
+                initialNumToRender={20}
+                windowSize={10}
+                contentContainerStyle={[styles.messagesList, activeMessages.length === 0 && { flex: 1, justifyContent: 'center' }]}
                 showsVerticalScrollIndicator={false}
                 style={styles.messageList}
+                ListEmptyComponent={
+                    <View style={styles.emptyContainer}>
+                        {isLoadingMessages ? (
+                            <ActivityIndicator size="large" color={Colors.primary} />
+                        ) : (
+                            <>
+                                <Icon name="chatbubbles-outline" size={48} color={Colors.textTertiary} />
+                                <Text style={styles.emptyText}>No messages yet</Text>
+                                <Text style={styles.emptySubtext}>Send a message to start the conversation</Text>
+                            </>
+                        )}
+                    </View>
+                }
             />
 
             {/* Input */}
@@ -214,6 +231,24 @@ const styles = StyleSheet.create({
     messagesList: {
         paddingVertical: 12,
         paddingHorizontal: 6,
+    },
+    emptyContainer: {
+        alignItems: 'center',
+        justifyContent: 'center',
+        padding: 20,
+        transform: [{ scaleY: -1 }],
+    },
+    emptyText: {
+        fontSize: 16,
+        fontWeight: '600',
+        color: Colors.textSecondary,
+        marginTop: 12,
+    },
+    emptySubtext: {
+        fontSize: 14,
+        color: Colors.textTertiary,
+        marginTop: 4,
+        textAlign: 'center',
     },
 });
 

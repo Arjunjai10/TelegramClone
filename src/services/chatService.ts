@@ -144,21 +144,23 @@ class ChatService {
         try {
             const chatRef = doc(this.chatsCollection, chatId);
             const messagesRef = collection(chatRef, COLLECTIONS.MESSAGES);
+            const messageRef = doc(messagesRef); // Generate auto-ID ref
 
-            // Use addDoc for message (auto-ID), then batch update the parent chat
-            const messageRef = await addDoc(messagesRef, {
+            const batch = writeBatch(this.db);
+            batch.set(messageRef, {
                 ...message,
                 createdAt: serverTimestamp(),
             });
 
-            // Update lastMessage separately (writeBatch can't addDoc, only set/update)
-            await updateDoc(chatRef, {
+            batch.update(chatRef, {
                 lastMessage: {
                     text: message.type === 'image' ? '📷 Photo' : (message.text || ''),
                     senderId: message.senderId,
                     timestamp: serverTimestamp(),
                 },
             });
+
+            await batch.commit();
 
             return messageRef.id;
         } catch (error) {
